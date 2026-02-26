@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeft, ChevronDown, Download, Eye, Layout, Minus, Plus, RefreshCw, Save, Upload } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Eye, Layout, Minus, Plus, RefreshCw, Save, Upload, Ban } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -58,6 +58,7 @@ export default function Editor({ lang }: EditorProps) {
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
   const [showGuide, setShowGuide] = useState(true);
   const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
+  const [selectedExtraAssets, setSelectedExtraAssets] = useState<Set<string>>(new Set(['favicon', 'splash']));
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
 
@@ -259,10 +260,7 @@ export default function Editor({ lang }: EditorProps) {
                   canvas.height = height;
                   const ctx = canvas.getContext('2d');
                   if (ctx) {
-                      // Canvas logic for export (drawing centered on Artboard concept)
-                      // When exporting 'icon-512', we assume 512 is the artboard size.
-                      // We need to map the Editor's visual scaling to this export canvas.
-
+                      // Canvas logic for export
                       const radius = (project.borderRadius || 0) * (width / 512);
 
                       ctx.beginPath();
@@ -290,34 +288,18 @@ export default function Editor({ lang }: EditorProps) {
                       ctx.translate(width / 2, height / 2);
 
                       // Apply user position
-                      // Position in Editor is px offset from center.
-                      // We scale this offset proportional to the export size (assuming 512 is base)
                       const positionScale = width / 512;
                       const userLogoX = (project.logoX || 0) * positionScale;
                       const userLogoY = (project.logoY || 0) * positionScale;
                       ctx.translate(userLogoX, userLogoY);
 
                       // Apply user scale
-                      // In editor, scale applies to the logo content.
-                      const logoScale = (project.logoScale || 1) * scaleFactor;
-                      ctx.scale(logoScale, logoScale);
-
-                      // Draw Image
-                      // We draw the image centered at (0,0) with its intrinsic size?
-                      // Wait, if logoDimensions are 64x64, we should draw it as 64x64?
-                      // In the editor, `logoDimensions * scale` is the visual size.
-                      // If I export at 512x512, and logo is 64x64, it should look tiny (unless scaled).
-                      // We need to scale the logo by (width/512) ONLY IF the logo dimensions were relative to 512.
-                      // But logoDimensions are absolute pixels from SVG.
-                      // If I export a 1024x1024 icon, everything should double in size.
-                      // So we scale the *base dimensions* by (width/512).
-
                       const exportRatio = width / 512;
-
-                      // Draw image centered
-                      // img.width/height might be browser dependent if not loaded, but we parsed dims.
                       const drawWidth = logoDimensions.width * exportRatio;
                       const drawHeight = logoDimensions.height * exportRatio;
+
+                      const logoScale = (project.logoScale || 1);
+                      ctx.scale(logoScale * scaleFactor, logoScale * scaleFactor);
 
                       ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
 
@@ -342,16 +324,20 @@ export default function Editor({ lang }: EditorProps) {
       });
 
       // Generate Splash Screen (1080x1920)
-      const splashPromise = generatePng(1080, 1920, 0.5).then(blob => {
-          if (blob) zip.file('splash.png', blob);
-      });
-      promises.push(splashPromise);
+      if (selectedExtraAssets.has('splash')) {
+          const splashPromise = generatePng(1080, 1920, 0.5).then(blob => {
+              if (blob) zip.file('splash.png', blob);
+          });
+          promises.push(splashPromise);
+      }
 
       // Generate Favicon
-      const faviconPromise = generatePng(32, 32).then(blob => {
-          if (blob) zip.file('favicon.ico', blob);
-      });
-      promises.push(faviconPromise);
+      if (selectedExtraAssets.has('favicon')) {
+          const faviconPromise = generatePng(32, 32).then(blob => {
+              if (blob) zip.file('favicon.ico', blob);
+          });
+          promises.push(faviconPromise);
+      }
 
       // Generate OpenGraph Image
       try {
@@ -581,6 +567,19 @@ export default function Editor({ lang }: EditorProps) {
                 onDeselectAllSizes={() => setSelectedSizes([])}
                 scale={scale}
                 position={position}
+
+                // Extra Props for new features
+                shortName={project.shortName}
+                description={project.description}
+                themeColor={project.themeColor}
+
+                selectedExtraAssets={selectedExtraAssets}
+                onToggleExtraAsset={(asset) => {
+                    const next = new Set(selectedExtraAssets);
+                    if (next.has(asset)) next.delete(asset);
+                    else next.add(asset);
+                    setSelectedExtraAssets(next);
+                }}
              />
          </div>
       </main>
@@ -772,13 +771,30 @@ export default function Editor({ lang }: EditorProps) {
                                 </div>
                                 <ArrowLeft className="w-3 h-3 text-slate-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 <div className="flex items-center space-x-2 relative">
-                                    <div className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer relative">
+                                    {/* Transparent Button */}
+                                    <button
+                                        onClick={() => handleColorChange(color, 'transparent')}
+                                        className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-red-500 transition-colors mr-1"
+                                        title="Make Transparent"
+                                    >
+                                        <Ban className="w-3 h-3" />
+                                    </button>
+
+                                    <div className={`w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer relative ${
+                                        (colors[color] === 'transparent' || colors[color] === 'rgba(0,0,0,0)')
+                                        ? 'bg-[url(https://upload.wikimedia.org/wikipedia/commons/1/18/Transparent_square_tiles_texture.png)] bg-[length:8px_8px]'
+                                        : ''
+                                    }`}>
                                         <input
                                             type="color"
-                                            value={colors[color] || color}
+                                            value={colors[color] === 'transparent' ? '#ffffff' : (colors[color] || color)}
                                             onChange={(e) => handleColorChange(color, e.target.value)}
-                                            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none opacity-0"
                                         />
+                                        {/* Visual indication if not transparent */}
+                                        {colors[color] !== 'transparent' && (
+                                            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: colors[color] || color }}></div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -799,13 +815,6 @@ export default function Editor({ lang }: EditorProps) {
                 </button>
                 {openSections.includes('actions') && (
                     <div className="p-4 pt-0 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
-                        <button
-                            onClick={handleSave}
-                            className="w-full flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
-                        >
-                            <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.save')}</span>
-                            <Save className="w-4 h-4 text-slate-500" />
-                        </button>
                         <label className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
                             <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.replace_svg')}</span>
                             <Upload className="w-4 h-4 text-slate-500" />
@@ -822,7 +831,7 @@ export default function Editor({ lang }: EditorProps) {
                     className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-sm font-medium transition-colors"
                 >
                     <Download className="w-4 h-4" />
-                    <span>{t('editor.download_assets')} ({selectedSizes.length})</span>
+                    <span>{t('editor.download_assets')} ({selectedSizes.length + selectedExtraAssets.size})</span>
                 </button>
             </div>
         </div>

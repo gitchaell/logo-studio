@@ -14,8 +14,11 @@ export const generateManifest = (project: any, sizes: number[]) => {
       icons: sizes.map(size => ({
           src: `icon-${size}.png`,
           sizes: `${size}x${size}`,
-          type: 'image/png'
-      }))
+          type: 'image/png',
+          purpose: 'any maskable'
+      })),
+      categories: [], // Optional but good to have structure
+      // iarc_rating_id: "" // Optional
   };
 };
 
@@ -23,10 +26,13 @@ export const generateAppJson = (project: any, sizes: number[]) => {
   const sortedSizes = [...sizes].sort((a, b) => a - b);
   const largestSize = sortedSizes.length > 0 ? sortedSizes[sortedSizes.length - 1] : undefined;
 
+  const slug = project.shortName?.toLowerCase().replace(/\s+/g, '-') || project.name.toLowerCase().replace(/\s+/g, '-');
+  const bundleId = `com.example.${slug.replace(/-/g, '')}`;
+
   return {
       expo: {
           name: project.name,
-          slug: project.shortName?.toLowerCase().replace(/\s+/g, '-') || project.name.toLowerCase().replace(/\s+/g, '-'),
+          slug: slug,
           version: "1.0.0",
           orientation: project.orientation === 'any' ? 'default' : project.orientation,
           icon: largestSize ? `./icon-${largestSize}.png` : undefined,
@@ -38,14 +44,14 @@ export const generateAppJson = (project: any, sizes: number[]) => {
           },
           ios: {
               supportsTablet: true,
-              bundleIdentifier: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
+              bundleIdentifier: bundleId
           },
           android: {
               adaptiveIcon: {
                   foregroundImage: largestSize ? `./icon-${largestSize}.png` : undefined,
                   backgroundColor: project.appBackgroundColor || "#ffffff"
               },
-              package: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
+              package: bundleId
           },
           web: {
               favicon: "./favicon.ico"

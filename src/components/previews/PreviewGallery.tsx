@@ -3,8 +3,8 @@ import { BrowserTabPreview } from './BrowserTabPreview';
 import { ManifestPreview } from './ManifestPreview';
 import { SocialPreviewCard } from './SocialPreviewCard';
 import { ui, defaultLang } from '@/i18n/ui';
-import { Check, Download, Globe, Smartphone, Share2, Layout, FileJson, Copy, X } from 'lucide-react';
-import { generateOpenGraph } from '@/lib/generators';
+import { Check, Download, Globe, Smartphone, Share2, Layout, FileJson } from 'lucide-react';
+import { generateOpenGraph, generateManifest, generateAppJson } from '@/lib/generators';
 
 interface PreviewGalleryProps {
   svgContent: string;
@@ -20,6 +20,11 @@ interface PreviewGalleryProps {
   onDeselectAllSizes?: () => void;
   scale?: number;
   position?: { x: number; y: number };
+  shortName?: string;
+  description?: string;
+  themeColor?: string;
+  selectedExtraAssets?: Set<string>;
+  onToggleExtraAsset?: (asset: string) => void;
 }
 
 const AVAILABLE_SIZES = [16, 32, 64, 128, 192, 512, 1024];
@@ -37,7 +42,12 @@ export function PreviewGallery({
     onSelectAllSizes,
     onDeselectAllSizes,
     scale = 1,
-    position = { x: 0, y: 0 }
+    position = { x: 0, y: 0 },
+    shortName,
+    description,
+    themeColor,
+    selectedExtraAssets = new Set(),
+    onToggleExtraAsset
 }: PreviewGalleryProps) {
   const [activeTab, setActiveTab] = useState<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('web');
   const [customSizes, setCustomSizes] = useState<number[]>([]);
@@ -48,12 +58,12 @@ export function PreviewGallery({
   useEffect(() => {
       const generate = async () => {
           if (svgContent && projectName) {
-              const svg = await generateOpenGraph({ name: projectName, description: 'Designed with Logo Studio' }, svgContent);
+              const svg = await generateOpenGraph({ name: projectName, description: description || 'Designed with Logo Studio' }, svgContent);
               setOgImage(svg);
           }
       };
       generate();
-  }, [svgContent, projectName]);
+  }, [svgContent, projectName, description]);
 
   const logoTransformStyle = {
       transform: `translate(${(position.x / 512) * 100}%, ${(position.y / 512) * 100}%) scale(${scale})`,
@@ -180,37 +190,49 @@ export function PreviewGallery({
                 )}
 
                 {activeTab === 'social' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col items-center">
-                        <SocialPreviewCard
-                            platform="linkedin"
-                            image={ogImage || svgContent}
-                            title={projectName || 'Project Title'}
-                            description="Designed with Logo Studio"
-                        />
-                        <SocialPreviewCard
-                            platform="facebook"
-                            image={ogImage || svgContent}
-                            title={projectName || 'Project Title'}
-                            description="Designed with Logo Studio"
-                        />
-                        <SocialPreviewCard
-                            platform="twitter"
-                            image={ogImage || svgContent}
-                            title={projectName || 'Project Title'}
-                            description="Designed with Logo Studio"
-                        />
-                        <SocialPreviewCard
-                            platform="whatsapp"
-                            image={ogImage || svgContent}
-                            title={projectName || 'Project Title'}
-                            description="Designed with Logo Studio"
-                        />
-                        <SocialPreviewCard
-                            platform="instagram"
-                            image={ogImage || svgContent}
-                            title={projectName || 'Project Title'}
-                            description="Designed with Logo Studio"
-                        />
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+                            <div className="break-inside-avoid">
+                                <SocialPreviewCard
+                                    platform="linkedin"
+                                    image={ogImage || svgContent}
+                                    title={projectName || 'Project Title'}
+                                    description={description || "Designed with Logo Studio"}
+                                />
+                            </div>
+                            <div className="break-inside-avoid">
+                                <SocialPreviewCard
+                                    platform="facebook"
+                                    image={ogImage || svgContent}
+                                    title={projectName || 'Project Title'}
+                                    description={description || "Designed with Logo Studio"}
+                                />
+                            </div>
+                            <div className="break-inside-avoid">
+                                <SocialPreviewCard
+                                    platform="twitter"
+                                    image={ogImage || svgContent}
+                                    title={projectName || 'Project Title'}
+                                    description={description || "Designed with Logo Studio"}
+                                />
+                            </div>
+                            <div className="break-inside-avoid">
+                                <SocialPreviewCard
+                                    platform="whatsapp"
+                                    image={ogImage || svgContent}
+                                    title={projectName || 'Project Title'}
+                                    description={description || "Designed with Logo Studio"}
+                                />
+                            </div>
+                            <div className="break-inside-avoid">
+                                <SocialPreviewCard
+                                    platform="instagram"
+                                    image={ogImage || svgContent}
+                                    title={projectName || 'Project Title'}
+                                    description={description || "Designed with Logo Studio"}
+                                />
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -227,22 +249,15 @@ export function PreviewGallery({
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Splash Screen</span>
                             </label>
                         </div>
-                        {showSplashInManifest ? (
-                             <div className="w-[300px] h-[533px] bg-white relative flex flex-col items-center justify-center border border-zinc-200 shadow-lg rounded-xl overflow-hidden" style={{ backgroundColor: backgroundColor || '#ffffff' }}>
-                                 <div className="w-32 h-32">
-                                     <div style={logoTransformStyle}>
-                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
-                                     </div>
-                                 </div>
-                             </div>
-                        ) : (
-                            <ManifestPreview
-                                display={displayMode}
-                                orientation={orientation}
-                                backgroundColor={backgroundColor}
-                                themeColor={backgroundColor}
-                            />
-                        )}
+                        <ManifestPreview
+                            display={displayMode || 'standalone'}
+                            orientation={orientation || 'any'}
+                            backgroundColor={backgroundColor}
+                            themeColor={themeColor || backgroundColor}
+                            showSplash={showSplashInManifest}
+                            logoContent={svgContent}
+                            scale={scale}
+                        />
                     </div>
                 )}
 
@@ -278,14 +293,30 @@ export function PreviewGallery({
                                     Add Size
                                 </button>
                                 <div className="text-sm text-slate-500 ml-2">
-                                    {selectedSizes.length} selected
+                                    {selectedSizes.length + (selectedExtraAssets?.size || 0)} selected
                                 </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
-                            {/* Favicon & Splash Previews */}
-                            <div className="relative group border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                            {/* Favicon & Splash Previews with Selection UI */}
+                            <div
+                                onClick={() => onToggleExtraAsset?.('favicon')}
+                                className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
+                                    selectedExtraAssets?.has('favicon')
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                }`}
+                            >
+                                 <div className="absolute top-3 right-3 z-10">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                                        selectedExtraAssets?.has('favicon')
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                    }`}>
+                                        {selectedExtraAssets?.has('favicon') && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
                                 <div className="flex-1 flex items-center justify-center">
                                     <div className="w-8 h-8 flex items-center justify-center">
                                          <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
@@ -295,7 +326,24 @@ export function PreviewGallery({
                                     <span className="block text-sm font-semibold text-slate-900 dark:text-white">favicon.ico</span>
                                 </div>
                             </div>
-                            <div className="relative group border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+
+                            <div
+                                onClick={() => onToggleExtraAsset?.('splash')}
+                                className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
+                                    selectedExtraAssets?.has('splash')
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                }`}
+                            >
+                                <div className="absolute top-3 right-3 z-10">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                                        selectedExtraAssets?.has('splash')
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                    }`}>
+                                        {selectedExtraAssets?.has('splash') && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
                                 <div className="flex-1 flex items-center justify-center">
                                     <div className="w-16 h-24 bg-zinc-100 flex items-center justify-center border border-zinc-200" style={{backgroundColor: backgroundColor}}>
                                          <div className="w-8 h-8 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
@@ -361,13 +409,13 @@ export function PreviewGallery({
                             <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
                                 <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> manifest.json</h4>
                                 <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
-                                    {JSON.stringify({ name: projectName, icons: selectedSizes.map(s => ({ src: `icon-${s}.png` })) }, null, 2)}
+                                    {JSON.stringify(generateManifest({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)}
                                 </pre>
                             </div>
                             <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
                                 <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> app.json</h4>
                                 <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
-                                    {JSON.stringify({ expo: { name: projectName } }, null, 2)}
+                                    {JSON.stringify(generateAppJson({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)}
                                 </pre>
                             </div>
                         </div>
