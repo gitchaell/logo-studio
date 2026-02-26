@@ -25,7 +25,15 @@ export function ResizablePanel({
   const [width, setWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load saved state
   useEffect(() => {
@@ -90,14 +98,14 @@ export function ResizablePanel({
         ${isResizing ? 'duration-0 select-none' : 'duration-300 ease-in-out'}
         ${side === 'left' ? 'border-r' : 'border-l'}
         ${className}`}
-      style={{ width: isCollapsed ? 0 : width }}
+      style={{ width: isMobile ? '100%' : (isCollapsed ? 0 : width) }}
     >
-      <div className={`flex-1 overflow-hidden flex flex-col min-w-0 ${isCollapsed ? 'opacity-0 invisible' : 'opacity-100 visible'} transition-opacity duration-200`}>
+      <div className={`flex-1 overflow-hidden flex flex-col min-w-0 ${isCollapsed && !isMobile ? 'opacity-0 invisible' : 'opacity-100 visible'} transition-opacity duration-200`}>
         {children}
       </div>
 
       {/* Drag Handle */}
-      {!isCollapsed && (
+      {!isCollapsed && !isMobile && (
         <div
           className={`absolute top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500/50 transition-colors z-40 group flex items-center justify-center
             ${side === 'left' ? '-right-0.5' : '-left-0.5'}`}
@@ -109,7 +117,7 @@ export function ResizablePanel({
       )}
 
       {/* Collapse Toggle Button */}
-      {collapsible && (
+      {collapsible && !isMobile && (
         <button
           onClick={toggleCollapse}
           className={`absolute top-1/2 -translate-y-1/2 w-6 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-md flex items-center justify-center text-slate-400 hover:text-blue-500 z-50 focus:outline-none transition-transform duration-300 hover:scale-110
