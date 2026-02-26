@@ -252,7 +252,7 @@ export function PreviewGallery({
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
-                            {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => a - b).map(size => {
+                            {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => b - a).map(size => {
                                 const isSelected = selectedSizes.includes(size);
                                 const previewSize = Math.min(160, Math.max(48, size));
 

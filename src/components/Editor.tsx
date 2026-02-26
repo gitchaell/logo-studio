@@ -433,31 +433,60 @@ export default function Editor({ lang }: EditorProps) {
 
                 {/* Guides Overlay */}
                 {showGuide && (
-                  <div className="absolute w-[512px] h-[512px] border border-zinc-300 dark:border-zinc-700 z-20 opacity-40 pointer-events-none">
-                    {/* 4x4 Grid */}
-                    <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
-                      {[...Array(16)].map((_, i) => (
-                        <div key={i} className="border border-zinc-200/50 dark:border-zinc-700/50"></div>
-                      ))}
-                    </div>
-                    {/* Rule of Thirds */}
-                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
-                      {[...Array(9)].map((_, i) => (
-                        <div key={i} className="border border-blue-500/10 dark:border-blue-400/10"></div>
-                      ))}
-                    </div>
-                    {/* Diagonals */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" viewBox="0 0 512 512">
-                         <line x1="0" y1="0" x2="512" y2="512" stroke="currentColor" className="text-zinc-400 dark:text-zinc-600" />
-                         <line x1="512" y1="0" x2="0" y2="512" stroke="currentColor" className="text-zinc-400 dark:text-zinc-600" />
+                  <div className="absolute w-[512px] h-[512px] z-20 pointer-events-none opacity-60">
+                    <svg width="512" height="512" viewBox="0 0 512 512" className="stroke-zinc-400/50 dark:stroke-zinc-600/50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Outer Grid (16x16) - Dashed */}
+                        <g strokeDasharray="4 4" strokeWidth="1">
+                            {/* Verticals */}
+                            {[...Array(7)].map((_, i) => (
+                                <line key={`v-${i}`} x1={(i + 1) * 64} y1="0" x2={(i + 1) * 64} y2="512" />
+                            ))}
+                            {/* Horizontals */}
+                            {[...Array(7)].map((_, i) => (
+                                <line key={`h-${i}`} x1="0" y1={(i + 1) * 64} x2="512" y2={(i + 1) * 64} />
+                            ))}
+                        </g>
+
+                        {/* Center Cross - Solid */}
+                        <g strokeWidth="1.5" className="stroke-blue-500/50">
+                            <line x1="256" y1="0" x2="256" y2="512" />
+                            <line x1="0" y1="256" x2="512" y2="256" />
+                        </g>
+
+                        {/* Diagonals - Dashed */}
+                        <g strokeDasharray="4 4" strokeWidth="1">
+                            <line x1="0" y1="0" x2="512" y2="512" />
+                            <line x1="512" y1="0" x2="0" y2="512" />
+                        </g>
+
+                        {/* Circular Guides */}
+                        <g strokeWidth="1" strokeDasharray="4 4">
+                            {/* Outer Circle (touching edges) */}
+                            <circle cx="256" cy="256" r="256" />
+                            {/* Inner Circle 1 (~85%) */}
+                            <circle cx="256" cy="256" r="218" />
+                             {/* Inner Circle 2 (~50%) */}
+                            <circle cx="256" cy="256" r="128" />
+                             {/* Inner Circle 3 (~25%) */}
+                            <circle cx="256" cy="256" r="64" />
+                        </g>
+
+                        {/* Squircle Guides (App Icon Shape) */}
+                        <g strokeWidth="1.5" strokeDasharray="4 4">
+                             {/* Outer Squircle (Approximate path for Apple's superellipse) */}
+                             <path d="M 256,0
+                                C 64,0 0,64 0,256
+                                C 0,448 64,512 256,512
+                                C 448,512 512,448 512,256
+                                C 512,64 448,0 256,0 Z"
+                                className="stroke-zinc-500/50 dark:stroke-zinc-400/50"
+                                transform="scale(0.9) translate(28.4, 28.4)" // Scale down slightly for visual fit like iOS grid
+                             />
+
+                             {/* Inner Square Guide */}
+                             <rect x="128" y="128" width="256" height="256" rx="40" />
+                        </g>
                     </svg>
-                    {/* Center Cross */}
-                    <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-500/50"></div>
-                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-500/50"></div>
-                    {/* Safe Area Circle */}
-                    <div className="absolute inset-8 rounded-full border border-dashed border-zinc-400/50"></div>
-                    {/* Inner Safe Area (Square) */}
-                    <div className="absolute inset-16 border border-dashed border-zinc-400/30"></div>
                   </div>
                 )}
             </div>
