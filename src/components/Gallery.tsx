@@ -3,8 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { FilePlus, Trash2, Edit2, Search, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ui, defaultLang } from '@/i18n/ui';
-import { useToast } from '../ui/Toast';
-import { Modal } from '../ui/Modal';
+import { useToast } from './ui/Toast';
+import { Modal } from './ui/Modal';
 
 interface GalleryProps {
     lang: string;

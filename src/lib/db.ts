@@ -17,6 +17,9 @@ export interface Project {
   // Style
   borderRadius?: number;
   backgroundColor?: string;
+  logoScale?: number;
+  logoX?: number;
+  logoY?: number;
 
   createdAt: Date;
   updatedAt: Date;

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ui, defaultLang } from '@/i18n/ui';
-import { useToast } from '../ui/Toast';
-import { ResizablePanel } from '../ui/ResizablePanel';
+import { useToast } from './ui/Toast';
+import { ResizablePanel } from './ui/ResizablePanel';
 import { PreviewGallery } from './previews/PreviewGallery';
 
 interface EditorProps {
@@ -28,6 +28,7 @@ export default function Editor({ lang }: EditorProps) {
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
   const [showGuide, setShowGuide] = useState(true);
   const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
+  const [initialized, setInitialized] = useState(false);
 
   const t = (key: string) => {
     // @ts-ignore
@@ -39,6 +40,25 @@ export default function Editor({ lang }: EditorProps) {
     const idParam = params.get('id');
     if (idParam) setId(Number(idParam));
   }, []);
+
+  useEffect(() => {
+    if (project && !initialized) {
+        setScale(project.logoScale || 1);
+        setPosition({ x: project.logoX || 0, y: project.logoY || 0 });
+        setInitialized(true);
+    }
+  }, [project, initialized]);
+
+  // Persist scale changes (debounced)
+  useEffect(() => {
+      if (!initialized || !project || !id) return;
+      const timer = setTimeout(() => {
+         if (project.logoScale !== scale) {
+             db.projects.update(id, { logoScale: scale });
+         }
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [scale, id, initialized]);
 
   // Extract unique colors from SVG content
   useEffect(() => {
@@ -95,7 +115,12 @@ export default function Editor({ lang }: EditorProps) {
     }
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = () => {
+      setIsDragging(false);
+      if (project && id) {
+          db.projects.update(id, { logoX: position.x, logoY: position.y });
+      }
+  };
 
   const handleColorChange = (original: string, newColor: string) => {
     setColors(prev => ({ ...prev, [original]: newColor }));
@@ -208,7 +233,26 @@ export default function Editor({ lang }: EditorProps) {
                           ctx.fill();
                       }
 
-                      ctx.drawImage(img, 0, 0, size, size);
+                      // Apply transformations
+                      ctx.save();
+                      const scaleFactor = size / 512;
+
+                      // Move to center
+                      ctx.translate(size / 2, size / 2);
+
+                      // Apply user position (scaled)
+                      const logoX = project.logoX || 0;
+                      const logoY = project.logoY || 0;
+                      ctx.translate(logoX * scaleFactor, logoY * scaleFactor);
+
+                      // Apply user scale
+                      const logoScale = project.logoScale || 1;
+                      ctx.scale(logoScale, logoScale);
+
+                      // Draw image centered relative to the new origin
+                      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+
+                      ctx.restore();
 
                       canvas.toBlob((blob) => {
                           if (blob) zip.file(`icon-${size}.png`, blob);
@@ -244,7 +288,7 @@ export default function Editor({ lang }: EditorProps) {
   if (!project) return <div className="flex items-center justify-center h-full text-slate-500">Loading...</div>;
 
   return (
-    <div className="flex h-full bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-full bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
@@ -274,38 +318,56 @@ export default function Editor({ lang }: EditorProps) {
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
          >
-            <div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                style={{
-                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                    transformOrigin: 'center',
-                    transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-                }}
-            >
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {/* Canvas Background & Logo */}
+                <div
+                   className="absolute w-[512px] h-[512px] overflow-hidden shadow-2xl"
+                   style={{
+                       backgroundColor: project.backgroundColor || 'transparent',
+                       borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
+                   }}
+                >
+                     <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                            transformOrigin: 'center',
+                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                        }}
+                     >
+                          <div className="w-[512px] h-[512px]" dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
+                     </div>
+                </div>
+
+                {/* Guides Overlay */}
                 {showGuide && (
-                  <div className="absolute w-[512px] h-[512px] border border-zinc-300 dark:border-zinc-700 z-0 opacity-50">
-                    {/* Grid Lines */}
+                  <div className="absolute w-[512px] h-[512px] border border-zinc-300 dark:border-zinc-700 z-20 opacity-40 pointer-events-none">
+                    {/* 4x4 Grid */}
                     <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
                       {[...Array(16)].map((_, i) => (
                         <div key={i} className="border border-zinc-200/50 dark:border-zinc-700/50"></div>
                       ))}
                     </div>
+                    {/* Rule of Thirds */}
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                      {[...Array(9)].map((_, i) => (
+                        <div key={i} className="border border-blue-500/10 dark:border-blue-400/10"></div>
+                      ))}
+                    </div>
+                    {/* Diagonals */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" viewBox="0 0 512 512">
+                         <line x1="0" y1="0" x2="512" y2="512" stroke="currentColor" className="text-zinc-400 dark:text-zinc-600" />
+                         <line x1="512" y1="0" x2="0" y2="512" stroke="currentColor" className="text-zinc-400 dark:text-zinc-600" />
+                    </svg>
                     {/* Center Cross */}
                     <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-500/50"></div>
                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-500/50"></div>
                     {/* Safe Area Circle */}
                     <div className="absolute inset-8 rounded-full border border-dashed border-zinc-400/50"></div>
+                    {/* Inner Safe Area (Square) */}
+                    <div className="absolute inset-16 border border-dashed border-zinc-400/30"></div>
                   </div>
                 )}
-
-                <div
-                className="w-[512px] h-[512px] relative z-10 overflow-hidden"
-                style={{
-                    backgroundColor: project.backgroundColor || 'transparent',
-                    borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
-                }}
-                dangerouslySetInnerHTML={{ __html: getProcessedSvg() }}
-                />
             </div>
 
             {/* Controls Overlay */}
@@ -340,12 +402,16 @@ export default function Editor({ lang }: EditorProps) {
                 lang={lang}
                 borderRadius={project.borderRadius}
                 backgroundColor={project.backgroundColor}
+                displayMode={project.displayMode}
+                orientation={project.orientation}
+                selectedSizes={selectedSizes}
+                onToggleSize={(size) => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
              />
          </div>
       </main>
 
       {/* Right Sidebar - Configuration */}
-      <ResizablePanel side="right" defaultWidth={320} minWidth={280} maxWidth={400} storageKey="editor-sidebar" className="z-10 bg-white dark:bg-zinc-900">
+      <ResizablePanel side="right" defaultWidth={320} minWidth={280} maxWidth={400} storageKey="editor-sidebar" className="z-10 !h-1/2 md:!h-full !w-full md:!w-auto border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="flex flex-col h-full overflow-hidden">
             <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                 <div className="space-y-4">
@@ -396,7 +462,7 @@ export default function Editor({ lang }: EditorProps) {
                             max="256"
                             value={project.borderRadius || 0}
                             onChange={(e) => db.projects.update(project.id!, { borderRadius: Number(e.target.value) })}
-                            className="w-full"
+                            className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer dark:bg-zinc-700 accent-blue-600"
                         />
                     </div>
                 </div>
@@ -543,26 +609,12 @@ export default function Editor({ lang }: EditorProps) {
             </div>
 
             <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 shrink-0 space-y-4">
-                <div>
-                   <label className="text-xs font-medium text-slate-500 mb-2 block">Export Sizes</label>
-                   <div className="flex flex-wrap gap-2">
-                     {[16, 32, 64, 128, 192, 512, 1024].map(size => (
-                        <button
-                           key={size}
-                           onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
-                           className={`px-2 py-1 text-[10px] font-mono rounded border ${selectedSizes.includes(size) ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-slate-500'}`}
-                        >
-                            {size}
-                        </button>
-                     ))}
-                   </div>
-                </div>
                 <button
                     onClick={handleExport}
                     className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-sm font-medium transition-colors"
                 >
                     <Download className="w-4 h-4" />
-                    <span>{t('editor.download_assets')}</span>
+                    <span>{t('editor.download_assets')} ({selectedSizes.length})</span>
                 </button>
             </div>
         </div>
