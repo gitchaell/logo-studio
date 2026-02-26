@@ -1,17 +1,47 @@
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeft, ChevronDown, Download, Eye, Layout, Minus, Plus, RefreshCw, Save, Upload } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { ui, defaultLang } from '@/i18n/ui';
 import { useToast } from './ui/Toast';
 import { ResizablePanel } from './ui/ResizablePanel';
 import { PreviewGallery } from './previews/PreviewGallery';
+import { generateManifest, generateAppJson, generateOpenGraph } from '@/lib/generators';
 
 interface EditorProps {
     lang: string;
 }
+
+const getSvgDimensions = (svgString: string) => {
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgString, 'image/svg+xml');
+        const svg = doc.querySelector('svg');
+        if (!svg) return { width: 512, height: 512 };
+
+        let width = parseFloat(svg.getAttribute('width') || '');
+        let height = parseFloat(svg.getAttribute('height') || '');
+        const viewBox = svg.getAttribute('viewBox');
+
+        if (isNaN(width) && viewBox) {
+            const parts = viewBox.split(/[\s,]+/).filter(Boolean);
+            if (parts.length === 4) width = parseFloat(parts[2]);
+        }
+        if (isNaN(height) && viewBox) {
+            const parts = viewBox.split(/[\s,]+/).filter(Boolean);
+            if (parts.length === 4) height = parseFloat(parts[3]);
+        }
+
+        return {
+            width: width || 512,
+            height: height || 512
+        };
+    } catch (e) {
+        return { width: 512, height: 512 };
+    }
+};
 
 export default function Editor({ lang }: EditorProps) {
   const [id, setId] = useState<number | null>(null);
@@ -29,6 +59,7 @@ export default function Editor({ lang }: EditorProps) {
   const [showGuide, setShowGuide] = useState(true);
   const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
   const [initialized, setInitialized] = useState(false);
+  const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
 
   // Resize State
   const [isResizing, setIsResizing] = useState(false);
@@ -71,22 +102,26 @@ export default function Editor({ lang }: EditorProps) {
       return () => clearTimeout(timer);
   }, [scale, id, initialized]);
 
-  // Extract unique colors from SVG content
+  // Parse SVG for colors and dimensions
   useEffect(() => {
     if (project?.svgContent) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(project.svgContent, 'image/svg+xml');
+
+      // Colors
       const allElements = doc.querySelectorAll('*');
       const foundColors = new Set<string>();
-
       allElements.forEach(el => {
         const fill = el.getAttribute('fill');
         if (fill && fill !== 'none' && fill !== 'transparent') foundColors.add(fill);
         const stroke = el.getAttribute('stroke');
         if (stroke && stroke !== 'none' && stroke !== 'transparent') foundColors.add(stroke);
       });
-
       setUniqueColors(Array.from(foundColors));
+
+      // Dimensions
+      const dims = getSvgDimensions(project.svgContent);
+      setLogoDimensions(dims);
     }
   }, [project]);
 
@@ -142,7 +177,7 @@ export default function Editor({ lang }: EditorProps) {
         const deltaY = e.clientY - resizeStart.y;
 
         let delta = 0;
-
+        // In screen coordinates
         switch (activeHandle) {
             case 'br': delta = Math.max(deltaX, deltaY); break;
             case 'bl': delta = Math.max(-deltaX, deltaY); break;
@@ -200,87 +235,44 @@ export default function Editor({ lang }: EditorProps) {
       const zip = new JSZip();
       const svgString = getProcessedSvg();
       const sortedSizes = [...selectedSizes].sort((a, b) => a - b);
-      const largestSize = sortedSizes.length > 0 ? sortedSizes[sortedSizes.length - 1] : undefined;
 
       // Add SVG
       zip.file(`${project.name}.svg`, svgString);
 
-      // Manifest.json
-      const manifest = {
-          name: project.name,
-          short_name: project.shortName || project.name,
-          description: project.description || '',
-          theme_color: project.themeColor || '#ffffff',
-          background_color: project.appBackgroundColor || '#ffffff',
-          display: project.displayMode || 'standalone',
-          orientation: project.orientation || 'any',
-          start_url: project.startUrl || '/',
-          icons: sortedSizes.map(size => ({
-              src: `icon-${size}.png`,
-              sizes: `${size}x${size}`,
-              type: 'image/png'
-          }))
-      };
+      // Manifest.json & App.json
+      const manifest = generateManifest(project, sortedSizes);
       zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
-      // app.json (Expo)
-      const appJson = {
-          expo: {
-              name: project.name,
-              slug: project.shortName?.toLowerCase().replace(/\s+/g, '-') || project.name.toLowerCase().replace(/\s+/g, '-'),
-              version: "1.0.0",
-              orientation: project.orientation === 'any' ? 'default' : project.orientation,
-              icon: largestSize ? `./icon-${largestSize}.png` : undefined,
-              userInterfaceStyle: "light",
-              splash: {
-                  image: largestSize ? `./icon-${largestSize}.png` : undefined,
-                  resizeMode: "contain",
-                  backgroundColor: project.appBackgroundColor || "#ffffff"
-              },
-              ios: {
-                  supportsTablet: true,
-                  bundleIdentifier: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
-              },
-              android: {
-                  adaptiveIcon: {
-                      foregroundImage: largestSize ? `./icon-${largestSize}.png` : undefined,
-                      backgroundColor: project.appBackgroundColor || "#ffffff"
-                  },
-                  package: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
-              },
-              web: {
-                  favicon: sortedSizes.includes(32) ? "./icon-32.png" : undefined
-              },
-              description: project.description || ''
-          }
-      };
+      const appJson = generateAppJson(project, sortedSizes);
       zip.file('app.json', JSON.stringify(appJson, null, 2));
 
-
-      // Generate PNGs
-      const promises = selectedSizes.map(async (size) => {
-          return new Promise<void>((resolve) => {
+      // Generate PNGs Helper
+      const generatePng = (width: number, height: number, scaleFactor: number = 1): Promise<Blob | null> => {
+          return new Promise((resolve) => {
               const img = new Image();
               const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
               const url = URL.createObjectURL(svgBlob);
 
               img.onload = () => {
                   const canvas = document.createElement('canvas');
-                  canvas.width = size;
-                  canvas.height = size;
+                  canvas.width = width;
+                  canvas.height = height;
                   const ctx = canvas.getContext('2d');
                   if (ctx) {
-                      // Apply border radius and background
-                      const radius = (project.borderRadius || 0) * (size / 512); // Scale radius relative to 512px canvas
+                      // Canvas logic for export (drawing centered on Artboard concept)
+                      // When exporting 'icon-512', we assume 512 is the artboard size.
+                      // We need to map the Editor's visual scaling to this export canvas.
+
+                      const radius = (project.borderRadius || 0) * (width / 512);
 
                       ctx.beginPath();
                       ctx.moveTo(radius, 0);
-                      ctx.lineTo(size - radius, 0);
-                      ctx.quadraticCurveTo(size, 0, size, radius);
-                      ctx.lineTo(size, size - radius);
-                      ctx.quadraticCurveTo(size, size, size - radius, size);
-                      ctx.lineTo(radius, size);
-                      ctx.quadraticCurveTo(0, size, 0, size - radius);
+                      ctx.lineTo(width - radius, 0);
+                      ctx.quadraticCurveTo(width, 0, width, radius);
+                      ctx.lineTo(width, height - radius);
+                      ctx.quadraticCurveTo(width, height, width - radius, height);
+                      ctx.lineTo(radius, height);
+                      ctx.quadraticCurveTo(0, height, 0, height - radius);
                       ctx.lineTo(0, radius);
                       ctx.quadraticCurveTo(0, 0, radius, 0);
                       ctx.closePath();
@@ -292,39 +284,84 @@ export default function Editor({ lang }: EditorProps) {
                           ctx.fill();
                       }
 
-                      // Apply transformations
                       ctx.save();
-                      const scaleFactor = size / 512;
 
-                      // Move to center
-                      ctx.translate(size / 2, size / 2);
+                      // Move to center of export canvas
+                      ctx.translate(width / 2, height / 2);
 
-                      // Apply user position (scaled)
-                      const logoX = project.logoX || 0;
-                      const logoY = project.logoY || 0;
-                      ctx.translate(logoX * scaleFactor, logoY * scaleFactor);
+                      // Apply user position
+                      // Position in Editor is px offset from center.
+                      // We scale this offset proportional to the export size (assuming 512 is base)
+                      const positionScale = width / 512;
+                      const userLogoX = (project.logoX || 0) * positionScale;
+                      const userLogoY = (project.logoY || 0) * positionScale;
+                      ctx.translate(userLogoX, userLogoY);
 
                       // Apply user scale
-                      const logoScale = project.logoScale || 1;
+                      // In editor, scale applies to the logo content.
+                      const logoScale = (project.logoScale || 1) * scaleFactor;
                       ctx.scale(logoScale, logoScale);
 
-                      // Draw image centered relative to the new origin
-                      ctx.drawImage(img, -size / 2, -size / 2, size, size);
+                      // Draw Image
+                      // We draw the image centered at (0,0) with its intrinsic size?
+                      // Wait, if logoDimensions are 64x64, we should draw it as 64x64?
+                      // In the editor, `logoDimensions * scale` is the visual size.
+                      // If I export at 512x512, and logo is 64x64, it should look tiny (unless scaled).
+                      // We need to scale the logo by (width/512) ONLY IF the logo dimensions were relative to 512.
+                      // But logoDimensions are absolute pixels from SVG.
+                      // If I export a 1024x1024 icon, everything should double in size.
+                      // So we scale the *base dimensions* by (width/512).
+
+                      const exportRatio = width / 512;
+
+                      // Draw image centered
+                      // img.width/height might be browser dependent if not loaded, but we parsed dims.
+                      const drawWidth = logoDimensions.width * exportRatio;
+                      const drawHeight = logoDimensions.height * exportRatio;
+
+                      ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
 
                       ctx.restore();
 
                       canvas.toBlob((blob) => {
-                          if (blob) zip.file(`icon-${size}.png`, blob);
                           URL.revokeObjectURL(url);
-                          resolve();
+                          resolve(blob);
                       });
                   } else {
-                      resolve();
+                      resolve(null);
                   }
               };
               img.src = url;
           });
+      };
+
+      // Generate Standard Sizes
+      const promises = sortedSizes.map(async (size) => {
+          const blob = await generatePng(size, size);
+          if (blob) zip.file(`icon-${size}.png`, blob);
       });
+
+      // Generate Splash Screen (1080x1920)
+      const splashPromise = generatePng(1080, 1920, 0.5).then(blob => {
+          if (blob) zip.file('splash.png', blob);
+      });
+      promises.push(splashPromise);
+
+      // Generate Favicon
+      const faviconPromise = generatePng(32, 32).then(blob => {
+          if (blob) zip.file('favicon.ico', blob);
+      });
+      promises.push(faviconPromise);
+
+      // Generate OpenGraph Image
+      try {
+          const ogSvg = await generateOpenGraph(project, svgString);
+          if (ogSvg) {
+              zip.file('opengraph-image.svg', ogSvg);
+          }
+      } catch (e) {
+          console.error("OG Generation failed", e);
+      }
 
       await Promise.all(promises);
       const content = await zip.generateAsync({ type: 'blob' });
@@ -352,7 +389,10 @@ export default function Editor({ lang }: EditorProps) {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
          {/* Header */}
-         <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-center shrink-0 z-20">
+         <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-center shrink-0 z-20 relative">
+             <a href={`/${lang}`} className="absolute left-6 p-2 rounded-lg text-slate-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white transition-colors" title={t('sidebar.back_to_overview')}>
+                <ArrowLeft className="w-5 h-5" />
+             </a>
              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-lg">
                 <button
                     onClick={() => setActiveTab('edit')}
@@ -380,7 +420,7 @@ export default function Editor({ lang }: EditorProps) {
             onWheel={handleWheel}
          >
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {/* Canvas Background & Logo */}
+                {/* Canvas Background (Artboard) */}
                 <div
                    className="absolute w-[512px] h-[512px] overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm"
                    style={{
@@ -388,47 +428,57 @@ export default function Editor({ lang }: EditorProps) {
                        borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
                    }}
                 >
-                     <div
-                        className="w-full h-full flex items-center justify-center"
-                        style={{
-                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                            transformOrigin: 'center',
-                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-                        }}
-                     >
-                          <div className="w-[512px] h-[512px]" dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
-                     </div>
+                    {/* Render the LOGO inside the artboard with correct dimensions and transform */}
+                    <div className="w-full h-full flex items-center justify-center">
+                         <div
+                            style={{
+                                width: logoDimensions.width,
+                                height: logoDimensions.height,
+                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                transformOrigin: 'center',
+                                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                            }}
+                         >
+                              <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
+                         </div>
+                    </div>
                 </div>
 
                 {/* Selection Overlay */}
+                {/* Visual match for the logo inside the artboard */}
                 <div
-                    className="absolute"
-                    style={{
-                        width: 512 * scale,
-                        height: 512 * scale,
-                        transform: `translate(${position.x}px, ${position.y}px)`,
-                    }}
+                    className="absolute flex items-center justify-center" // Centered in screen (matching artboard center)
+                    style={{ width: 0, height: 0 }} // Zero size wrapper
                 >
-                    {/* Outline */}
-                    <div className="absolute inset-0 border border-blue-500 pointer-events-none opacity-50"></div>
+                    <div
+                        style={{
+                            width: logoDimensions.width * scale,
+                            height: logoDimensions.height * scale,
+                            transform: `translate(${position.x}px, ${position.y}px)`,
+                            position: 'absolute'
+                        }}
+                    >
+                        {/* Outline */}
+                        <div className="absolute inset-0 border border-blue-500 pointer-events-none opacity-50"></div>
 
-                    {/* Handles */}
-                    <div
-                        className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
-                        onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
-                    />
-                    <div
-                        className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
-                        onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
-                    />
-                    <div
-                        className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
-                        onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
-                    />
-                    <div
-                        className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
-                        onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
-                    />
+                        {/* Handles */}
+                        <div
+                            className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
+                        />
+                        <div
+                            className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
+                        />
+                        <div
+                            className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
+                        />
+                        <div
+                            className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
+                        />
+                    </div>
                 </div>
 
                 {/* Guides Overlay */}
@@ -527,6 +577,8 @@ export default function Editor({ lang }: EditorProps) {
                 orientation={project.orientation}
                 selectedSizes={selectedSizes}
                 onToggleSize={(size) => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
+                onSelectAllSizes={() => setSelectedSizes([16, 32, 64, 128, 192, 512, 1024])}
+                onDeselectAllSizes={() => setSelectedSizes([])}
                 scale={scale}
                 position={position}
              />
