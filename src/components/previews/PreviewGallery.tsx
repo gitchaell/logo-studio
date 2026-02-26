@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserTabPreview } from './BrowserTabPreview';
 import { ManifestPreview } from './ManifestPreview';
+import { SocialPreviewCard } from './SocialPreviewCard';
 import { ui, defaultLang } from '@/i18n/ui';
-import { Check, Download, Globe, Smartphone, Share2, Layout } from 'lucide-react';
+import { Check, Download, Globe, Smartphone, Share2, Layout, FileJson, Copy, X } from 'lucide-react';
+import { generateOpenGraph } from '@/lib/generators';
 
 interface PreviewGalleryProps {
   svgContent: string;
@@ -14,6 +16,8 @@ interface PreviewGalleryProps {
   orientation?: 'any' | 'natural' | 'landscape' | 'portrait';
   selectedSizes?: number[];
   onToggleSize?: (size: number) => void;
+  onSelectAllSizes?: () => void;
+  onDeselectAllSizes?: () => void;
   scale?: number;
   position?: { x: number; y: number };
 }
@@ -30,12 +34,26 @@ export function PreviewGallery({
     orientation = 'any',
     selectedSizes = [],
     onToggleSize,
+    onSelectAllSizes,
+    onDeselectAllSizes,
     scale = 1,
     position = { x: 0, y: 0 }
 }: PreviewGalleryProps) {
   const [activeTab, setActiveTab] = useState<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('web');
   const [customSizes, setCustomSizes] = useState<number[]>([]);
   const [newSizeInput, setNewSizeInput] = useState('');
+  const [ogImage, setOgImage] = useState<string>('');
+  const [showSplashInManifest, setShowSplashInManifest] = useState(false);
+
+  useEffect(() => {
+      const generate = async () => {
+          if (svgContent && projectName) {
+              const svg = await generateOpenGraph({ name: projectName, description: 'Designed with Logo Studio' }, svgContent);
+              setOgImage(svg);
+          }
+      };
+      generate();
+  }, [svgContent, projectName]);
 
   const logoTransformStyle = {
       transform: `translate(${(position.x / 512) * 100}%, ${(position.y / 512) * 100}%) scale(${scale})`,
@@ -133,16 +151,6 @@ export function PreviewGallery({
                                         </div>
                                     </div>
                                     <span className="text-[11px] font-medium text-slate-800 text-center drop-shadow-sm truncate w-20">{projectName || 'App'}</span>
-                                    <div className="mt-8 grid grid-cols-4 gap-4 w-full px-2 opacity-30 pointer-events-none grayscale">
-                                        {[...Array(12)].map((_, i) => (
-                                             <div key={i} className="aspect-square bg-slate-400/50 rounded-[12px]"></div>
-                                        ))}
-                                    </div>
-                                    <div className="absolute bottom-4 left-4 right-4 h-20 bg-white/40 backdrop-blur-xl rounded-[28px] flex items-center justify-around px-4">
-                                        {[...Array(4)].map((_, i) => (
-                                             <div key={i} className="w-12 h-12 bg-white/50 rounded-[10px]"></div>
-                                        ))}
-                                    </div>
                                 </div>
                              </div>
 
@@ -151,9 +159,6 @@ export function PreviewGallery({
                                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-60"></div>
                                 <div className="absolute top-0 w-full h-6 flex justify-between px-4 items-center text-[10px] font-medium text-white/80 z-20">
                                     <span>12:00</span>
-                                    <div className="flex space-x-1">
-                                        <span>100%</span>
-                                    </div>
                                 </div>
                                 <div className="relative h-full flex flex-col items-center pt-24 px-4">
                                     <div
@@ -168,14 +173,6 @@ export function PreviewGallery({
                                         </div>
                                     </div>
                                     <span className="text-[11px] font-medium text-white/90 text-center drop-shadow-md truncate w-20">{projectName || 'App'}</span>
-                                    <div className="mt-12 grid grid-cols-4 gap-6 w-full px-2 opacity-40 pointer-events-none">
-                                        {[...Array(8)].map((_, i) => (
-                                             <div key={i} className="aspect-square bg-white/20 rounded-full"></div>
-                                        ))}
-                                    </div>
-                                    <div className="absolute bottom-20 left-4 right-4 h-10 bg-white/10 backdrop-blur-md rounded-full border border-white/10 flex items-center px-4">
-                                        <div className="w-4 h-4 rounded-full border-2 border-white/50"></div>
-                                    </div>
                                 </div>
                              </div>
                         </div>
@@ -183,39 +180,69 @@ export function PreviewGallery({
                 )}
 
                 {activeTab === 'social' && (
-                    <div className="flex items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="w-full max-w-[600px] aspect-[1.91/1] bg-white dark:bg-zinc-800 rounded-xl overflow-hidden shadow-lg border border-zinc-200 dark:border-zinc-700 flex flex-col">
-                             <div className="flex-1 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center relative overflow-hidden">
-                                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] dark:bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                                  <div
-                                    className="w-32 h-32 flex items-center justify-center shadow-2xl"
-                                    style={{
-                                        backgroundColor: backgroundColor || 'transparent',
-                                        borderRadius: borderRadius ? `${borderRadius * (128/512)}px` : '0'
-                                    }}
-                                  >
-                                    <div style={logoTransformStyle}>
-                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
-                                    </div>
-                                  </div>
-                             </div>
-                             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-700">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">{projectName || 'Project Name'}</h3>
-                                <p className="text-xs text-slate-500 truncate mt-1">Check out my new logo designed with Logo Studio.</p>
-                                <p className="text-[10px] text-slate-400 mt-2 uppercase">example.com</p>
-                             </div>
-                        </div>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300 flex flex-col items-center">
+                        <SocialPreviewCard
+                            platform="linkedin"
+                            image={ogImage || svgContent}
+                            title={projectName || 'Project Title'}
+                            description="Designed with Logo Studio"
+                        />
+                        <SocialPreviewCard
+                            platform="facebook"
+                            image={ogImage || svgContent}
+                            title={projectName || 'Project Title'}
+                            description="Designed with Logo Studio"
+                        />
+                        <SocialPreviewCard
+                            platform="twitter"
+                            image={ogImage || svgContent}
+                            title={projectName || 'Project Title'}
+                            description="Designed with Logo Studio"
+                        />
+                        <SocialPreviewCard
+                            platform="whatsapp"
+                            image={ogImage || svgContent}
+                            title={projectName || 'Project Title'}
+                            description="Designed with Logo Studio"
+                        />
+                        <SocialPreviewCard
+                            platform="instagram"
+                            image={ogImage || svgContent}
+                            title={projectName || 'Project Title'}
+                            description="Designed with Logo Studio"
+                        />
                     </div>
                 )}
 
                 {activeTab === 'manifest' && (
-                    <div className="flex items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <ManifestPreview
-                            display={displayMode}
-                            orientation={orientation}
-                            backgroundColor={backgroundColor}
-                            themeColor={backgroundColor}
-                        />
+                    <div className="flex flex-col items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="mb-4">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={showSplashInManifest}
+                                    onChange={(e) => setShowSplashInManifest(e.target.checked)}
+                                    className="rounded border-zinc-300"
+                                />
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Splash Screen</span>
+                            </label>
+                        </div>
+                        {showSplashInManifest ? (
+                             <div className="w-[300px] h-[533px] bg-white relative flex flex-col items-center justify-center border border-zinc-200 shadow-lg rounded-xl overflow-hidden" style={{ backgroundColor: backgroundColor || '#ffffff' }}>
+                                 <div className="w-32 h-32">
+                                     <div style={logoTransformStyle}>
+                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                     </div>
+                                 </div>
+                             </div>
+                        ) : (
+                            <ManifestPreview
+                                display={displayMode}
+                                orientation={orientation}
+                                backgroundColor={backgroundColor}
+                                themeColor={backgroundColor}
+                            />
+                        )}
                     </div>
                 )}
 
@@ -223,6 +250,11 @@ export function PreviewGallery({
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Export Selection</h3>
+                            <div className="flex items-center space-x-2">
+                                <button onClick={onSelectAllSizes} className="text-xs text-blue-600 hover:underline">Select All</button>
+                                <span className="text-zinc-300">|</span>
+                                <button onClick={onDeselectAllSizes} className="text-xs text-slate-500 hover:underline">Deselect All</button>
+                            </div>
                             <div className="flex items-center space-x-2">
                                 <input
                                     type="number"
@@ -252,6 +284,29 @@ export function PreviewGallery({
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
+                            {/* Favicon & Splash Previews */}
+                            <div className="relative group border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="w-8 h-8 flex items-center justify-center">
+                                         <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    </div>
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">favicon.ico</span>
+                                </div>
+                            </div>
+                            <div className="relative group border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                                <div className="flex-1 flex items-center justify-center">
+                                    <div className="w-16 h-24 bg-zinc-100 flex items-center justify-center border border-zinc-200" style={{backgroundColor: backgroundColor}}>
+                                         <div className="w-8 h-8 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    </div>
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">splash.png</span>
+                                </div>
+                            </div>
+
+                            {/* Standard Sizes */}
                             {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => b - a).map(size => {
                                 const isSelected = selectedSizes.includes(size);
                                 const previewSize = Math.min(160, Math.max(48, size));
@@ -299,6 +354,22 @@ export function PreviewGallery({
                                     </div>
                                 );
                             })}
+                        </div>
+
+                        {/* JSON Viewers */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
+                                <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> manifest.json</h4>
+                                <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
+                                    {JSON.stringify({ name: projectName, icons: selectedSizes.map(s => ({ src: `icon-${s}.png` })) }, null, 2)}
+                                </pre>
+                            </div>
+                            <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
+                                <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> app.json</h4>
+                                <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
+                                    {JSON.stringify({ expo: { name: projectName } }, null, 2)}
+                                </pre>
+                            </div>
                         </div>
                     </div>
                 )}

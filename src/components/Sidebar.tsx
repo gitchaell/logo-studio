@@ -64,9 +64,6 @@ export default function Sidebar({ lang }: SidebarProps) {
     >
        {/* Header */}
        <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center shrink-0">
-         <a href={`/${lang}`} className="mr-2 p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title={t('sidebar.back_to_overview')}>
-            <ArrowLeft className="w-5 h-5" />
-         </a>
          <div className="flex items-center space-x-3 overflow-hidden">
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
                <PenTool className="w-5 h-5" />
