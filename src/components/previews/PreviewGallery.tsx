@@ -5,6 +5,9 @@ import { SocialPreviewCard } from './SocialPreviewCard';
 import { ui, defaultLang } from '@/i18n/ui';
 import { Check, Download, Globe, Smartphone, Share2, Layout, FileJson } from 'lucide-react';
 import { generateOpenGraph, generateManifest, generateAppJson } from '@/lib/generators';
+import { AVAILABLE_SIZES } from '@/lib/constants';
+import { CodeBlock } from '../ui/CodeBlock';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 interface PreviewGalleryProps {
   svgContent: string;
@@ -27,8 +30,6 @@ interface PreviewGalleryProps {
   onToggleExtraAsset?: (asset: string) => void;
 }
 
-const AVAILABLE_SIZES = [16, 32, 64, 128, 180, 192, 512, 1024];
-
 export function PreviewGallery({
     svgContent,
     projectName,
@@ -49,7 +50,7 @@ export function PreviewGallery({
     selectedExtraAssets = new Set(),
     onToggleExtraAsset
 }: PreviewGalleryProps) {
-  const [activeTab, setActiveTab] = useState<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('web');
+  const [activeTab, setActiveTab] = useLocalStorage<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('preview-active-tab', 'web');
   const [customSizes, setCustomSizes] = useState<number[]>([]);
   const [newSizeInput, setNewSizeInput] = useState('');
   const [ogImage, setOgImage] = useState<string>('');
@@ -316,7 +317,7 @@ export function PreviewGallery({
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Splash Screen</span>
                             </label>
                         </div>
-                        <div className="transform scale-110 md:scale-125 origin-top transition-transform">
+                        <div className="transform scale-110 md:scale-150 origin-top transition-transform">
                             <ManifestPreview
                                 display={displayMode || 'standalone'}
                                 orientation={orientation || 'any'}
@@ -477,15 +478,11 @@ export function PreviewGallery({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                             <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
                                 <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> manifest.json</h4>
-                                <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
-                                    {JSON.stringify(generateManifest({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)}
-                                </pre>
+                                <CodeBlock code={JSON.stringify(generateManifest({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)} language="json" />
                             </div>
                             <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 bg-white dark:bg-zinc-900">
                                 <h4 className="text-sm font-semibold mb-2 flex items-center"><FileJson className="w-4 h-4 mr-2"/> app.json</h4>
-                                <pre className="text-xs bg-zinc-50 dark:bg-zinc-950 p-2 rounded overflow-auto h-40">
-                                    {JSON.stringify(generateAppJson({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)}
-                                </pre>
+                                <CodeBlock code={JSON.stringify(generateAppJson({ name: projectName, shortName: shortName || projectName }, selectedSizes), null, 2)} language="json" />
                             </div>
                         </div>
                     </div>

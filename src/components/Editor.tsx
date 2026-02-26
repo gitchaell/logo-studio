@@ -9,6 +9,8 @@ import { useToast } from './ui/Toast';
 import { ResizablePanel } from './ui/ResizablePanel';
 import { PreviewGallery } from './previews/PreviewGallery';
 import { generateManifest, generateAppJson, generateOpenGraph } from '@/lib/generators';
+import { AVAILABLE_SIZES } from '@/lib/constants';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface EditorProps {
     lang: string;
@@ -25,13 +27,13 @@ const getSvgDimensions = (svgString: string) => {
         let height = parseFloat(svg.getAttribute('height') || '');
         const viewBox = svg.getAttribute('viewBox');
 
-        if (isNaN(width) && viewBox) {
+        if (viewBox) {
             const parts = viewBox.split(/[\s,]+/).filter(Boolean);
-            if (parts.length === 4) width = parseFloat(parts[2]);
-        }
-        if (isNaN(height) && viewBox) {
-            const parts = viewBox.split(/[\s,]+/).filter(Boolean);
-            if (parts.length === 4) height = parseFloat(parts[3]);
+            if (parts.length === 4) {
+                // If width/height are missing or percentages, prioritize viewBox
+                if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = parseFloat(parts[2]);
+                if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = parseFloat(parts[3]);
+            }
         }
 
         return {
@@ -41,6 +43,16 @@ const getSvgDimensions = (svgString: string) => {
     } catch (e) {
         return { width: 512, height: 512 };
     }
+};
+
+const fitLogoToCanvas = (width: number, height: number) => {
+    const targetSize = 400; // Leave some padding in 512x512 canvas
+    const scale = Math.min(targetSize / width, targetSize / height);
+    return {
+        scale,
+        x: 0,
+        y: 0
+    };
 };
 
 export default function Editor({ lang }: EditorProps) {
@@ -56,9 +68,14 @@ export default function Editor({ lang }: EditorProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [colors, setColors] = useState<Record<string, string>>({});
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
-  const [showGuide, setShowGuide] = useState(true);
-  const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 180, 192, 512, 1024]);
-  const [selectedExtraAssets, setSelectedExtraAssets] = useState<Set<string>>(new Set(['favicon', 'splash']));
+  const [showGuide, setShowGuide] = useLocalStorage('editor-show-guide', true);
+  const [selectedSizes, setSelectedSizes] = useLocalStorage<number[]>('editor-selected-sizes', AVAILABLE_SIZES);
+
+  // Custom serialization for Set
+  const [selectedExtraAssetsArray, setSelectedExtraAssetsArray] = useLocalStorage<string[]>('editor-extra-assets', ['favicon', 'splash']);
+  const selectedExtraAssets = useMemo(() => new Set(selectedExtraAssetsArray), [selectedExtraAssetsArray]);
+  const setSelectedExtraAssets = (newSet: Set<string>) => setSelectedExtraAssetsArray(Array.from(newSet));
+
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
 
@@ -67,10 +84,10 @@ export default function Editor({ lang }: EditorProps) {
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
   const [initialScale, setInitialScale] = useState(1);
   const [activeHandle, setActiveHandle] = useState<string | null>(null);
-  const [openSections, setOpenSections] = useState<string[]>(['style', 'colors']);
+  const [openSections, setOpenSections] = useLocalStorage<string[]>('editor-open-sections', ['style', 'colors']);
 
   const toggleSection = (section: string) => {
-    setOpenSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]);
+    setOpenSections((prev: string[]) => prev.includes(section) ? prev.filter((s: string) => s !== section) : [...prev, section]);
   };
 
   const t = (key: string) => {
@@ -86,8 +103,16 @@ export default function Editor({ lang }: EditorProps) {
 
   useEffect(() => {
     if (project && !initialized) {
-        setScale(project.logoScale || 1);
-        setPosition({ x: project.logoX || 0, y: project.logoY || 0 });
+        // If it looks like a new project (default values), try to fit the logo
+        if (project.logoScale === 1 && project.logoX === 0 && project.logoY === 0) {
+             const dims = getSvgDimensions(project.svgContent);
+             const { scale: fitScale, x, y } = fitLogoToCanvas(dims.width, dims.height);
+             setScale(fitScale);
+             setPosition({ x, y });
+        } else {
+             setScale(project.logoScale || 1);
+             setPosition({ x: project.logoX || 0, y: project.logoY || 0 });
+        }
         setInitialized(true);
     }
   }, [project, initialized]);
@@ -362,7 +387,22 @@ export default function Editor({ lang }: EditorProps) {
           const reader = new FileReader();
           reader.onload = async (ev) => {
               const content = ev.target?.result as string;
-              await db.projects.update(id, { svgContent: content, updatedAt: new Date() });
+
+              // Calculate auto-fit for the new logo
+              const dims = getSvgDimensions(content);
+              const { scale: fitScale, x, y } = fitLogoToCanvas(dims.width, dims.height);
+
+              await db.projects.update(id, {
+                  svgContent: content,
+                  updatedAt: new Date(),
+                  logoScale: fitScale,
+                  logoX: x,
+                  logoY: y
+              });
+
+              setScale(fitScale);
+              setPosition({ x, y });
+
               addToast(t('editor.saved'), 'success');
           };
           reader.readAsText(file);
@@ -565,7 +605,7 @@ export default function Editor({ lang }: EditorProps) {
                 orientation={project.orientation}
                 selectedSizes={selectedSizes}
                 onToggleSize={(size) => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
-                onSelectAllSizes={() => setSelectedSizes([16, 32, 64, 128, 192, 512, 1024])}
+                onSelectAllSizes={() => setSelectedSizes(AVAILABLE_SIZES)}
                 onDeselectAllSizes={() => setSelectedSizes([])}
                 scale={scale}
                 position={position}
