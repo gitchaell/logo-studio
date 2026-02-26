@@ -1,6 +1,3 @@
-import satori from "satori";
-import { html } from "satori-html";
-
 export const generateManifest = (project: any, sizes: number[]) => {
   return {
       name: project.name,
@@ -74,46 +71,22 @@ export const generateAppJson = (project: any, sizes: number[]) => {
 };
 
 export const generateOpenGraph = async (project: any, svgContent: string) => {
-    const { backgroundColor, themeColor } = project;
-    // Basic OG Template
-    const markup = html`
-    <div style="display: flex; flex-direction: column; width: 100%; height: 100%; background-color: #f0f2f5; align-items: center; justify-content: center; font-family: 'Inter', sans-serif;">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: ${backgroundColor || 'white'}; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-             <div style="width: 256px; height: 256px; display: flex; align-items: center; justify-content: center;">
-                <img src="${'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgContent)))}" width="256" height="256" />
-             </div>
-             <h1 style="font-size: 48px; font-weight: bold; color: #1e293b; margin-top: 24px; margin-bottom: 8px;">${project.name}</h1>
-             <p style="font-size: 24px; color: #64748b;">${project.description || 'Designed with Logo Studio'}</p>
-        </div>
-    </div>
-    `;
-
     try {
-        // Fetch font
-        const fontRes = await fetch('/fonts/inter/Inter-Bold.woff2');
-        if (!fontRes.ok) {
-            throw new Error(`Failed to load font: ${fontRes.statusText}`);
-        }
-        const fontData = await fontRes.arrayBuffer();
-
-        const svg = await satori(markup, {
-            width: 1200,
-            height: 630,
-            fonts: [
-                {
-                    name: 'Inter',
-                    data: fontData,
-                    weight: 700,
-                    style: 'normal',
-                },
-            ],
+        const response = await fetch('/api/generate-og', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ project, svgContent }),
         });
 
-        return svg;
+        if (!response.ok) {
+            throw new Error('Failed to generate OG image via API');
+        }
+
+        return await response.text();
     } catch (e) {
         console.error("Failed to generate OG image", e);
-        // Fallback: Return raw SVG content (scaled/centered) or empty string to prevent crash
-        // For now, return original SVG content is better than crashing, but OG usually expects 1200x630
         return svgContent;
     }
 };

@@ -4,6 +4,7 @@ export interface Project {
   id?: number;
   name: string;
   svgContent: string;
+  colors?: Record<string, string>;
 
   // PWA / Manifest
   shortName?: string;

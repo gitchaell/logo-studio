@@ -424,6 +424,56 @@ export function PreviewGallery({
                                 </div>
                             </div>
 
+                            <div
+                                onClick={() => onToggleExtraAsset('manifest')}
+                                className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
+                                    selectedExtraAssets.has('manifest')
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                }`}
+                            >
+                                <div className="absolute top-3 right-3 z-10">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                                        selectedExtraAssets.has('manifest')
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                    }`}>
+                                        {selectedExtraAssets.has('manifest') && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex items-center justify-center">
+                                     <FileJson className="w-12 h-12 text-slate-300" />
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">manifest.json</span>
+                                </div>
+                            </div>
+
+                            <div
+                                onClick={() => onToggleExtraAsset('appjson')}
+                                className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
+                                    selectedExtraAssets.has('appjson')
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                }`}
+                            >
+                                <div className="absolute top-3 right-3 z-10">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                                        selectedExtraAssets.has('appjson')
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                    }`}>
+                                        {selectedExtraAssets.has('appjson') && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex items-center justify-center">
+                                     <FileJson className="w-12 h-12 text-slate-300" />
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">app.json</span>
+                                </div>
+                            </div>
+
                             {/* Standard Sizes */}
                             {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => b - a).map(size => {
                                 const isSelected = selectedSizes.includes(size);
