@@ -30,15 +30,22 @@ const getSvgDimensions = (svgString: string) => {
         if (viewBox) {
             const parts = viewBox.split(/[\s,]+/).filter(Boolean);
             if (parts.length === 4) {
-                // If width/height are missing or percentages, prioritize viewBox
-                if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = parseFloat(parts[2]);
-                if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = parseFloat(parts[3]);
+                // Prioritize viewBox for aspect ratio if dimensions are missing or relative
+                const vbWidth = parseFloat(parts[2]);
+                const vbHeight = parseFloat(parts[3]);
+
+                if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = vbWidth;
+                if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = vbHeight;
             }
         }
 
+        // Fallback if viewBox failed or didn't exist and width/height are still bad
+        if (isNaN(width)) width = 512;
+        if (isNaN(height)) height = 512;
+
         return {
-            width: width || 512,
-            height: height || 512
+            width: width,
+            height: height
         };
     } catch (e) {
         return { width: 512, height: 512 };
@@ -69,12 +76,11 @@ export default function Editor({ lang }: EditorProps) {
   const [colors, setColors] = useState<Record<string, string>>({});
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
   const [showGuide, setShowGuide] = useLocalStorage('editor-show-guide', true);
-  const [selectedSizes, setSelectedSizes] = useLocalStorage<number[]>('editor-selected-sizes', AVAILABLE_SIZES);
 
-  // Custom serialization for Set
-  const [selectedExtraAssetsArray, setSelectedExtraAssetsArray] = useLocalStorage<string[]>('editor-extra-assets', ['favicon', 'splash']);
-  const selectedExtraAssets = useMemo(() => new Set(selectedExtraAssetsArray), [selectedExtraAssetsArray]);
-  const setSelectedExtraAssets = (newSet: Set<string>) => setSelectedExtraAssetsArray(Array.from(newSet));
+  // Use project state for selection, derived in render or useEffect, updated via DB
+  // Defaults
+  const selectedSizes = project?.selectedSizes || AVAILABLE_SIZES;
+  const selectedExtraAssets = new Set(project?.selectedExtraAssets || ['favicon', 'splash']);
 
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
@@ -254,6 +260,33 @@ export default function Editor({ lang }: EditorProps) {
        });
        addToast(t('editor.saved'), 'success');
     }
+  };
+
+  const handleToggleSize = (size: number) => {
+      if (!project || !id) return;
+      const current = project.selectedSizes || AVAILABLE_SIZES;
+      const next = current.includes(size)
+        ? current.filter(s => s !== size)
+        : [...current, size].sort((a, b) => a - b);
+      db.projects.update(id, { selectedSizes: next });
+  };
+
+  const handleSelectAllSizes = () => {
+      if (!project || !id) return;
+      db.projects.update(id, { selectedSizes: AVAILABLE_SIZES });
+  };
+
+  const handleDeselectAllSizes = () => {
+      if (!project || !id) return;
+      db.projects.update(id, { selectedSizes: [] });
+  };
+
+  const handleToggleExtraAsset = (asset: string) => {
+      if (!project || !id) return;
+      const current = new Set(project.selectedExtraAssets || ['favicon', 'splash']);
+      if (current.has(asset)) current.delete(asset);
+      else current.add(asset);
+      db.projects.update(id, { selectedExtraAssets: Array.from(current) });
   };
 
   const handleExport = async () => {
@@ -474,37 +507,46 @@ export default function Editor({ lang }: EditorProps) {
 
                 {/* Selection Overlay */}
                 {/* Visual match for the logo inside the artboard */}
-                <div
-                    className="absolute flex items-center justify-center" // Centered in screen (matching artboard center)
-                    style={{ width: 0, height: 0 }} // Zero size wrapper
-                >
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div
                         style={{
-                            width: logoDimensions.width * scale,
-                            height: logoDimensions.height * scale,
-                            transform: `translate(${position.x}px, ${position.y}px)`,
-                            position: 'absolute'
+                            width: logoDimensions.width,
+                            height: logoDimensions.height,
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                            transformOrigin: 'center',
+                            // Use outline instead of border to avoid messing with dimensions if using border-box
+                            // or position absolute inset-0 for outline
+                            position: 'relative'
                         }}
                     >
                         {/* Outline */}
-                        <div className="absolute inset-0 border border-blue-500 pointer-events-none opacity-50"></div>
+                        {/* We use a child for the border to ensure it sits exactly on the bounding box */}
+                        <div className="absolute inset-0 border border-blue-500 opacity-50 pointer-events-none"></div>
 
-                        {/* Handles */}
+                        {/* Handles - Inverse scale to keep size constant? No, simpler to just let them scale or use a different overlay technique.
+                            For now, let's keep them scaling with the object as per previous behavior, but fixed position logic.
+                            Actually, if we scale the parent, handles scale too. To keep handles constant size visually, we'd need to counter-scale them.
+                            Let's try standard behavior first (handles scale).
+                        */}
                         <div
                             className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
+                            style={{ transform: `scale(${1/scale})` }} // Counter-scale handles to keep visual size constant
                         />
                         <div
                             className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
+                            style={{ transform: `scale(${1/scale})` }}
                         />
                         <div
                             className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
+                            style={{ transform: `scale(${1/scale})` }}
                         />
                         <div
                             className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
+                            style={{ transform: `scale(${1/scale})` }}
                         />
                     </div>
                 </div>
@@ -604,9 +646,9 @@ export default function Editor({ lang }: EditorProps) {
                 displayMode={project.displayMode}
                 orientation={project.orientation}
                 selectedSizes={selectedSizes}
-                onToggleSize={(size) => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
-                onSelectAllSizes={() => setSelectedSizes(AVAILABLE_SIZES)}
-                onDeselectAllSizes={() => setSelectedSizes([])}
+                onToggleSize={handleToggleSize}
+                onSelectAllSizes={handleSelectAllSizes}
+                onDeselectAllSizes={handleDeselectAllSizes}
                 scale={scale}
                 position={position}
 
@@ -616,12 +658,7 @@ export default function Editor({ lang }: EditorProps) {
                 themeColor={project.themeColor}
 
                 selectedExtraAssets={selectedExtraAssets}
-                onToggleExtraAsset={(asset) => {
-                    const next = new Set(selectedExtraAssets);
-                    if (next.has(asset)) next.delete(asset);
-                    else next.add(asset);
-                    setSelectedExtraAssets(next);
-                }}
+                onToggleExtraAsset={handleToggleExtraAsset}
              />
          </div>
       </main>
