@@ -80,7 +80,7 @@ export default function Editor({ lang }: EditorProps) {
   // Use project state for selection, derived in render or useEffect, updated via DB
   // Defaults
   const selectedSizes = project?.selectedSizes || AVAILABLE_SIZES;
-  const selectedExtraAssets = new Set(project?.selectedExtraAssets || ['favicon', 'splash']);
+  const selectedExtraAssets = new Set(project?.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson']); // Added defaults
 
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
@@ -291,7 +291,7 @@ export default function Editor({ lang }: EditorProps) {
 
   const handleToggleExtraAsset = async (asset: string) => {
       if (!project || !id) return;
-      const current = new Set(project.selectedExtraAssets || ['favicon', 'splash']);
+      const current = new Set(project.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson']);
       if (current.has(asset)) current.delete(asset);
       else current.add(asset);
       await db.projects.update(id, { selectedExtraAssets: Array.from(current) });
@@ -306,12 +306,16 @@ export default function Editor({ lang }: EditorProps) {
       // Add SVG
       zip.file(`${project.name}.svg`, svgString);
 
-      // Manifest.json & App.json
-      const manifest = generateManifest(project, sortedSizes);
-      zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+      // Manifest.json & App.json (Conditional)
+      if (selectedExtraAssets.has('manifest')) {
+        const manifest = generateManifest(project, sortedSizes);
+        zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+      }
 
-      const appJson = generateAppJson(project, sortedSizes);
-      zip.file('app.json', JSON.stringify(appJson, null, 2));
+      if (selectedExtraAssets.has('appjson')) {
+        const appJson = generateAppJson(project, sortedSizes);
+        zip.file('app.json', JSON.stringify(appJson, null, 2));
+      }
 
       // Generate PNGs Helper
       const generatePng = (width: number, height: number, scaleFactor: number = 1, isFavicon: boolean = false): Promise<Blob | null> => {
@@ -407,7 +411,9 @@ export default function Editor({ lang }: EditorProps) {
           promises.push(faviconPromise);
       }
 
-      // Generate OpenGraph Image
+      // Generate OpenGraph Image (Always include OG if possible as it's a key feature, or add to selection?)
+      // User didn't explicitly ask for OG selection, but "favicon and splash, and perhaps manifest.json and app.json"
+      // I'll keep OG as auto-include for now unless user complains, or maybe add it to extras later if needed.
       try {
           const ogSvg = await generateOpenGraph(project, svgString);
           if (ogSvg) {

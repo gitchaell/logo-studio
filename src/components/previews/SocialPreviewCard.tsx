@@ -21,7 +21,19 @@ function safeBtoa(str: string) {
 }
 
 export function SocialPreviewCard({ platform, image, title, description, domain = 'example.com' }: SocialPreviewCardProps) {
-  const imgSrc = image ? `data:image/svg+xml;base64,${safeBtoa(image)}` : '';
+  // If the image starts with <svg, it's raw SVG content.
+  // If it doesn't, it might be a URL or data URL already?
+  // The API returns raw SVG string.
+  // Let's ensure we handle both cases or assume SVG string based on previous context.
+  // The generateOpenGraph returns response.text() which is the SVG markup.
+
+  let imgSrc = '';
+  if (image && image.trim().startsWith('<')) {
+      imgSrc = `data:image/svg+xml;base64,${safeBtoa(image)}`;
+  } else {
+      // Fallback or if it's already a URL
+      imgSrc = image;
+  }
 
   if (platform === 'linkedin') {
       return (
