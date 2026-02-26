@@ -27,7 +27,7 @@ interface PreviewGalleryProps {
   onToggleExtraAsset?: (asset: string) => void;
 }
 
-const AVAILABLE_SIZES = [16, 32, 64, 128, 192, 512, 1024];
+const AVAILABLE_SIZES = [16, 32, 64, 128, 180, 192, 512, 1024];
 
 export function PreviewGallery({
     svgContent,
@@ -138,51 +138,118 @@ export function PreviewGallery({
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
                              {/* iOS Preview */}
-                             <div className="w-full max-w-sm aspect-[9/16] rounded-3xl overflow-hidden bg-slate-100 shadow-md relative group border border-zinc-200 dark:border-zinc-800">
+                             <div className="w-full max-w-sm aspect-[9/19.5] rounded-[40px] overflow-hidden bg-slate-100 shadow-2xl relative group border-4 border-slate-900 dark:border-zinc-800">
                                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1621768216002-5ac171876625?auto=format&fit=crop&q=80')] bg-cover bg-center">
-                                   <div className="absolute inset-0 bg-white/30 backdrop-blur-3xl"></div>
+                                   <div className="absolute inset-0 bg-white/20 backdrop-blur-3xl"></div>
                                 </div>
-                                <div className="absolute top-0 w-full h-6 flex justify-between px-6 items-center text-[10px] font-medium text-slate-800 z-20">
-                                    <span>9:41</span>
-                                    <div className="flex space-x-1">
-                                        <div className="w-4 h-2.5 bg-slate-800 rounded-[2px]"></div>
-                                    </div>
-                                </div>
-                                <div className="relative h-full flex flex-col items-center pt-20 px-4">
-                                    <div
-                                        className="w-16 h-16 shadow-xl overflow-hidden flex items-center justify-center mb-2 transition-transform hover:scale-105 duration-200 cursor-pointer"
-                                        style={{
-                                            backgroundColor: backgroundColor || '#ffffff',
-                                            borderRadius: borderRadius ? `${borderRadius * (64/512)}px` : '14px'
-                                        }}
-                                    >
-                                        <div style={logoTransformStyle}>
-                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                {/* Status Bar */}
+                                <div className="absolute top-0 w-full h-12 flex justify-between px-6 items-end pb-2 text-xs font-semibold text-slate-900 z-20">
+                                    <span className="ml-2">9:41</span>
+                                    <div className="flex space-x-1.5 items-center mr-2">
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M1.66 17.65c.57.59 1.48.59 2.05 0L12 9.41l8.29 8.24c.57.59 1.48.59 2.05 0 .59-.59.59-1.55 0-2.14L13.03 6.18c-.57-.59-1.48-.59-2.05 0L1.66 15.51c-.59.59-.59 1.55 0 2.14z"/></svg>
+                                        <div className="w-5 h-2.5 border border-slate-900 rounded-[4px] relative">
+                                            <div className="absolute inset-0.5 bg-slate-900 rounded-[2px] w-[80%]"></div>
                                         </div>
                                     </div>
-                                    <span className="text-[11px] font-medium text-slate-800 text-center drop-shadow-sm truncate w-20">{projectName || 'App'}</span>
                                 </div>
+                                {/* Dynamic Island / Notch */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-30"></div>
+
+                                {/* Home Screen Grid */}
+                                <div className="relative h-full flex flex-col pt-24 px-6 pb-8">
+                                    <div className="grid grid-cols-4 gap-4 mb-auto">
+                                        {/* User App */}
+                                        <div className="flex flex-col items-center space-y-1">
+                                            <div
+                                                className="w-14 h-14 shadow-lg overflow-hidden flex items-center justify-center transition-transform hover:scale-105 duration-200 cursor-pointer bg-white"
+                                                style={{
+                                                    backgroundColor: backgroundColor || '#ffffff',
+                                                    borderRadius: borderRadius ? `${borderRadius * (56/512)}px` : '12px'
+                                                }}
+                                            >
+                                                <div style={logoTransformStyle}>
+                                                    <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] font-medium text-slate-800 text-center drop-shadow-sm truncate w-full">{projectName || 'App'}</span>
+                                        </div>
+                                        {/* Mock Apps */}
+                                        {[...Array(15)].map((_, i) => (
+                                            <div key={i} className="flex flex-col items-center space-y-1 opacity-60">
+                                                <div className="w-14 h-14 bg-white/40 backdrop-blur-sm rounded-[12px] shadow-sm"></div>
+                                                <div className="w-10 h-2 bg-slate-800/20 rounded-full"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Dock */}
+                                    <div className="bg-white/30 backdrop-blur-xl rounded-[28px] p-4 flex justify-around items-center mt-4 mb-4">
+                                         {[...Array(4)].map((_, i) => (
+                                            <div key={i} className="w-14 h-14 bg-white/40 backdrop-blur-md rounded-[12px] shadow-sm"></div>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Home Indicator */}
+                                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900 rounded-full z-20"></div>
                              </div>
 
                              {/* Android Preview */}
-                             <div className="w-full max-w-sm aspect-[9/16] rounded-3xl overflow-hidden bg-zinc-900 shadow-md relative group border border-zinc-700">
-                                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-60"></div>
-                                <div className="absolute top-0 w-full h-6 flex justify-between px-4 items-center text-[10px] font-medium text-white/80 z-20">
+                             <div className="w-full max-w-sm aspect-[9/19.5] rounded-[32px] overflow-hidden bg-zinc-900 shadow-2xl relative group border-4 border-zinc-800">
+                                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-80"></div>
+                                {/* Status Bar */}
+                                <div className="absolute top-0 w-full h-8 flex justify-between px-6 items-center text-xs font-medium text-white/90 z-20 pt-1">
                                     <span>12:00</span>
-                                </div>
-                                <div className="relative h-full flex flex-col items-center pt-24 px-4">
-                                    <div
-                                        className="w-14 h-14 shadow-lg overflow-hidden flex items-center justify-center mb-2 ring-2 ring-white/20 hover:ring-white/40 transition-all cursor-pointer"
-                                        style={{
-                                            backgroundColor: backgroundColor || '#ffffff',
-                                            borderRadius: borderRadius ? `${borderRadius * (56/512)}px` : '50%'
-                                        }}
-                                    >
-                                        <div style={logoTransformStyle}>
-                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
-                                        </div>
+                                    <div className="flex space-x-2 items-center">
+                                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21L22 9h-3.2L12 17.2 5.2 9H2l10 12z"/></svg>
+                                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
                                     </div>
-                                    <span className="text-[11px] font-medium text-white/90 text-center drop-shadow-md truncate w-20">{projectName || 'App'}</span>
+                                </div>
+                                {/* Camera Hole */}
+                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-black rounded-full z-30"></div>
+
+                                <div className="relative h-full flex flex-col pt-16 px-6 pb-12">
+                                     <div className="grid grid-cols-4 gap-x-4 gap-y-6 mb-auto">
+                                        {/* User App */}
+                                        <div className="flex flex-col items-center space-y-1">
+                                            <div
+                                                className="w-14 h-14 shadow-lg overflow-hidden flex items-center justify-center transition-transform hover:scale-105 duration-200 cursor-pointer"
+                                                style={{
+                                                    backgroundColor: backgroundColor || '#ffffff',
+                                                    borderRadius: borderRadius ? `${borderRadius * (56/512)}px` : '50%' // Android often circle or adaptive
+                                                }}
+                                            >
+                                                <div style={logoTransformStyle}>
+                                                    <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] font-medium text-white/90 text-center drop-shadow-md truncate w-full">{projectName || 'App'}</span>
+                                        </div>
+                                         {/* Mock Apps */}
+                                         {[...Array(15)].map((_, i) => (
+                                            <div key={i} className="flex flex-col items-center space-y-1 opacity-50">
+                                                <div className="w-14 h-14 bg-white/20 rounded-full shadow-sm"></div>
+                                                <div className="w-10 h-2 bg-white/20 rounded-full"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {/* Google Search Bar Mock */}
+                                    <div className="bg-white/20 backdrop-blur-md rounded-full h-10 w-full mb-6 flex items-center px-4 space-x-2 opacity-80">
+                                        <div className="w-4 h-4 rounded-full bg-white/50"></div>
+                                        <div className="w-full h-1.5 bg-white/30 rounded-full"></div>
+                                        <div className="w-3 h-4 rounded-sm bg-white/50 ml-auto"></div>
+                                    </div>
+                                     {/* Dock */}
+                                     <div className="flex justify-around items-center px-2">
+                                         {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full shadow-sm"></div>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Nav Bar */}
+                                <div className="absolute bottom-0 w-full h-8 flex justify-around items-center px-12 z-20 pb-2">
+                                    <div className="w-3 h-3 border-l-2 border-b-2 border-white/60 rotate-45 transform"></div>
+                                    <div className="w-3 h-3 border-2 border-white/60 rounded-sm"></div>
+                                    <div className="w-3 h-3 bg-white/60 rounded-full"></div>
                                 </div>
                              </div>
                         </div>
@@ -238,7 +305,7 @@ export function PreviewGallery({
 
                 {activeTab === 'manifest' && (
                     <div className="flex flex-col items-center justify-center min-h-[400px] animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="mb-4">
+                        <div className="mb-6">
                             <label className="flex items-center space-x-2 cursor-pointer">
                                 <input
                                     type="checkbox"
@@ -249,15 +316,17 @@ export function PreviewGallery({
                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Splash Screen</span>
                             </label>
                         </div>
-                        <ManifestPreview
-                            display={displayMode || 'standalone'}
-                            orientation={orientation || 'any'}
-                            backgroundColor={backgroundColor}
-                            themeColor={themeColor || backgroundColor}
-                            showSplash={showSplashInManifest}
-                            logoContent={svgContent}
-                            scale={scale}
-                        />
+                        <div className="transform scale-110 md:scale-125 origin-top transition-transform">
+                            <ManifestPreview
+                                display={displayMode || 'standalone'}
+                                orientation={orientation || 'any'}
+                                backgroundColor={backgroundColor}
+                                themeColor={themeColor || backgroundColor}
+                                showSplash={showSplashInManifest}
+                                logoContent={svgContent}
+                                scale={scale}
+                            />
+                        </div>
                     </div>
                 )}
 

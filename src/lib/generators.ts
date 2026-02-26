@@ -15,8 +15,16 @@ export const generateManifest = (project: any, sizes: number[]) => {
           src: `icon-${size}.png`,
           sizes: `${size}x${size}`,
           type: 'image/png',
-          purpose: 'any maskable'
+          purpose: size === 512 || size === 1024 ? 'any maskable' : 'any'
       })),
+      screenshots: [
+        {
+            src: "splash.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "wide"
+        }
+      ],
       categories: [], // Optional but good to have structure
       // iarc_rating_id: "" // Optional
   };
@@ -25,6 +33,10 @@ export const generateManifest = (project: any, sizes: number[]) => {
 export const generateAppJson = (project: any, sizes: number[]) => {
   const sortedSizes = [...sizes].sort((a, b) => a - b);
   const largestSize = sortedSizes.length > 0 ? sortedSizes[sortedSizes.length - 1] : undefined;
+
+  // Prefer standard sizes if available
+  const icon192 = sizes.includes(192) ? 192 : undefined;
+  const icon512 = sizes.includes(512) ? 512 : undefined;
 
   const slug = project.shortName?.toLowerCase().replace(/\s+/g, '-') || project.name.toLowerCase().replace(/\s+/g, '-');
   const bundleId = `com.example.${slug.replace(/-/g, '')}`;
@@ -35,7 +47,7 @@ export const generateAppJson = (project: any, sizes: number[]) => {
           slug: slug,
           version: "1.0.0",
           orientation: project.orientation === 'any' ? 'default' : project.orientation,
-          icon: largestSize ? `./icon-${largestSize}.png` : undefined,
+          icon: icon512 ? `./icon-${icon512}.png` : (largestSize ? `./icon-${largestSize}.png` : undefined),
           userInterfaceStyle: "light",
           splash: {
               image: "./splash.png",
@@ -48,7 +60,7 @@ export const generateAppJson = (project: any, sizes: number[]) => {
           },
           android: {
               adaptiveIcon: {
-                  foregroundImage: largestSize ? `./icon-${largestSize}.png` : undefined,
+                  foregroundImage: icon192 ? `./icon-${icon192}.png` : (largestSize ? `./icon-${largestSize}.png` : undefined),
                   backgroundColor: project.appBackgroundColor || "#ffffff"
               },
               package: bundleId

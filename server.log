@@ -2,221 +2,28 @@
 > astro-template@1.0.0 dev
 > astro dev
 
-▶ Astro collects anonymous usage data.
-  This information helps us improve Astro.
-  Run "astro telemetry disable" to opt-out.
-  https://astro.build/telemetry
+19:17:05 [types] Generated 1ms
+19:17:05 [content] Syncing content
+19:17:06 [content] Synced content
 
-17:33:59 [types] Generated 1ms
-17:33:59 [content] Syncing content
-17:33:59 [content] Synced content
-
- astro  v5.5.2 ready in 1161 ms
+ astro  v5.5.2 ready in 1158 ms
 
 ┃ Local    http://localhost:4321/
 ┃ Network  use --host to expose
 
-17:33:59 watching for file changes...
-
- update  ▶ New version of Astro available: 5.18.0
-  Run npx @astrojs/upgrade to update
-
-17:34:43 [200] /en 446ms
-17:34:46 [200] /en/editor 38ms
-17:34:46 [watch] server.log
-17:34:46 [watch] server.log
-17:36:07 [200] /en 55ms
-17:36:07 [watch] server.log
-17:36:07 [watch] server.log
-17:36:08 [200] /en/editor 33ms
-17:36:08 [watch] server.log
-17:36:08 [watch] server.log
-17:36:08 [200] /en 34ms
-17:36:08 [watch] server.log
-17:36:08 [watch] server.log
-17:36:09 [200] /en/editor 31ms
-17:36:09 [watch] server.log
-17:36:09 [watch] server.log
-17:36:09 [200] /en/editor 37ms
-17:36:09 [200] /en 15ms
-17:36:09 [watch] server.log
-17:36:09 [watch] server.log
-17:36:10 [200] /en/editor 36ms
-17:36:10 [watch] server.log
-17:36:10 [watch] server.log
-17:36:10 [200] /en 29ms
-17:36:10 [watch] server.log
-17:36:10 [watch] server.log
-17:36:15 [200] /es 26ms
-17:36:15 [watch] server.log
-17:36:15 [watch] server.log
-17:36:15 [200] /es/editor 26ms
-17:36:15 [watch] server.log
-17:36:15 [watch] server.log
-17:36:16 [200] /es 27ms
-17:36:16 [watch] server.log
-17:36:16 [watch] server.log
-17:36:17 [200] /es/editor 27ms
-17:36:17 [watch] server.log
-17:36:17 [watch] server.log
-17:36:17 [200] /es/editor 27ms
-17:36:17 [200] /es 6ms
-17:36:17 [200] /es/editor 6ms
-17:36:17 [watch] server.log
-17:36:17 [watch] server.log
-17:36:37 [watch] /src/components/Sidebar.tsx, /src/styles/global.css
-17:36:37 [watch] src/components/Sidebar.tsx
-17:36:37 [watch] server.log
-17:36:37 [watch] server.log
-17:36:46 [watch] /src/components/Editor.tsx, /src/styles/global.css
-17:36:46 [watch] src/components/Editor.tsx
-17:36:46 [watch] server.log
-17:36:46 [watch] server.log
-17:37:03 [200] /en 49ms
-17:37:03 [watch] server.log
-17:37:03 [watch] server.log
-17:37:04 [200] /en/editor 32ms
-17:37:04 [watch] server.log
-17:37:04 [watch] server.log
-17:37:04 [200] /en 33ms
-17:37:04 [watch] server.log
-17:37:04 [watch] server.log
-17:37:04 [200] /en 36ms
-17:37:04 [200] /en/editor 10ms
-17:37:04 [watch] server.log
-17:37:04 [watch] server.log
-17:37:04 [200] /en 50ms
-17:37:04 [watch] server.log
-17:37:04 [watch] server.log
-17:37:05 [200] /en/editor 34ms
-17:37:05 [watch] server.log
-17:37:05 [watch] server.log
-17:37:09 [200] /es 27ms
-17:37:09 [watch] server.log
-17:37:09 [watch] server.log
-17:37:10 [200] /es/editor 28ms
-17:37:10 [watch] server.log
-17:37:10 [watch] server.log
-17:37:10 [200] /es 26ms
-17:37:10 [watch] server.log
-17:37:10 [watch] server.log
-17:37:10 [200] /es 36ms
-17:37:10 [200] /es/editor 12ms
-17:37:10 [watch] server.log
-17:37:10 [watch] server.log
-17:37:10 [200] /es 37ms
-17:37:11 [watch] server.log
-17:37:11 [watch] server.log
-17:37:11 [200] /es/editor 28ms
-17:37:11 [watch] server.log
-17:37:11 [watch] server.log
-17:38:13 [watch] verification/verify_changes.py
-17:38:13 [watch] verification/verify_changes.py
-17:38:13 [watch] server.log
-17:38:13 [watch] server.log
-17:38:21 [200] /en 40ms
-17:38:21 [watch] server.log
-17:38:21 [watch] server.log
-17:38:21 [200] /en/editor 31ms
-17:38:21 [watch] server.log
-17:38:21 [watch] server.log
-17:38:22 [200] /en 26ms
-17:38:22 [watch] server.log
-17:38:22 [watch] server.log
-17:38:22 [200] /en 28ms
-17:38:22 [200] /en/editor 8ms
-17:38:22 [watch] server.log
-17:38:22 [watch] server.log
-17:38:22 [200] /en 37ms
-17:38:22 [watch] server.log
-17:38:22 [watch] server.log
-17:38:22 [200] /en/editor 31ms
-17:38:22 [watch] server.log
-17:38:22 [watch] server.log
-17:38:32 [200] /en 25ms
-17:38:32 [watch] server.log
-17:38:32 [watch] server.log
-17:38:34 [200] /en/editor 28ms
-17:38:34 [watch] server.log
-17:38:34 [watch] server.log
-17:38:34 [200] /en/editor 26ms
-17:38:34 [watch] server.log
-17:38:34 [watch] server.log
-17:38:34 [200] /en/editor 46ms
-17:38:34 [200] /en 46ms
-17:38:34 [200] /en 24ms
-17:38:34 [watch] server.log
-17:38:34 [watch] server.log
-17:38:44 [200] /es 26ms
-17:38:44 [watch] server.log
-17:38:44 [watch] server.log
-17:38:45 [200] /es/editor 29ms
-17:38:45 [watch] server.log
-17:38:45 [watch] server.log
-17:38:45 [200] /es 25ms
-17:38:45 [watch] server.log
-17:38:45 [watch] server.log
-17:38:45 [200] /es 26ms
-17:38:45 [watch] server.log
-17:38:45 [watch] server.log
-17:38:45 [200] /es/editor 42ms
-17:38:45 [200] /es 42ms
-17:38:45 [200] /es/editor 18ms
-17:38:45 [watch] server.log
-17:38:45 [watch] server.log
-17:38:55 [200] /es 25ms
-17:38:55 [watch] server.log
-17:38:55 [watch] server.log
-17:38:58 [200] /es/editor 27ms
-17:38:58 [watch] server.log
-17:38:58 [watch] server.log
-17:38:58 [200] /es/editor 26ms
-17:38:58 [watch] server.log
-17:38:58 [watch] server.log
-17:38:58 [200] /es/editor 47ms
-17:38:58 [200] /es 47ms
-17:38:58 [200] /es 16ms
-17:38:58 [watch] server.log
-17:38:58 [watch] server.log
-17:39:57 [200] /en 34ms
-17:39:57 [watch] server.log
-17:39:57 [watch] server.log
-17:39:58 [200] /en/editor 30ms
-17:39:58 [watch] server.log
-17:39:58 [watch] server.log
-17:40:00 [200] /es 27ms
-17:40:00 [watch] server.log
-17:40:00 [watch] server.log
-17:40:01 [200] /es/editor 28ms
-17:40:01 [watch] server.log
-17:40:01 [watch] server.log
-17:42:06 [watch] /src/styles/global.css
-17:42:06 [watch] verification/test.svg
-17:42:06 [watch] verification/debug_editor.py
-17:42:06 [watch] verification/debug_editor.py
-17:42:06 [watch] verification/verify_direct.py
-17:42:06 [watch] verification/verify_direct.py
-17:42:06 [watch] server.log
-17:42:06 [watch] server.log
-17:46:44 [watch] /src/components/previews/PreviewGallery.tsx, /src/styles/global.css
-17:46:44 [watch] src/components/previews/PreviewGallery.tsx
-17:46:44 [watch] server.log
-17:46:44 [watch] server.log
-17:47:44 [watch] /src/components/Editor.tsx, /src/styles/global.css
-17:47:44 [watch] src/components/Editor.tsx
-17:47:44 [watch] server.log
-17:47:44 [watch] server.log
-17:48:31 [watch] src/env.d.ts
-17:48:31 [watch] src/env.d.ts
-17:48:31 [watch] server.log
-17:48:31 [watch] server.log
-17:49:50 Configuration file updated. Restarting...
-17:49:50 [watch] package.json
-17:49:50 [watch] package.json
-17:49:50 [watch] server.log
-17:49:50 [watch] server.log
-17:49:51 [vite] Re-optimizing dependencies because vite config has changed
-17:49:51 [content] Syncing content
-17:49:51 [content] Synced content
-17:49:51 [types] Generated 378ms
-17:49:51 [vite] Re-optimizing dependencies because vite config has changed
+19:17:06 watching for file changes...
+19:18:12 [200] / 469ms
+19:18:12 [200] /en 70ms
+19:18:12 [watch] server.log
+19:18:12 [watch] server.log
+19:18:13 [watch] /src/styles/global.css
+19:18:13 [watch] verification/test_logo.svg
+19:18:13 [watch] server.log
+19:18:13 [watch] server.log
+19:18:13 [200] /en/editor 47ms
+19:18:13 [200] /en 23ms
+19:18:13 [watch] server.log
+19:18:13 [watch] server.log
+19:18:19 [200] /en/editor 29ms
+19:18:19 [watch] server.log
+19:18:19 [watch] server.log

@@ -25,7 +25,7 @@ export function SocialPreviewCard({ platform, image, title, description, domain 
 
   if (platform === 'linkedin') {
       return (
-          <div className="w-[500px] bg-white border border-zinc-200 rounded-lg overflow-hidden font-sans text-left shadow-sm">
+          <div className="w-full bg-white border border-zinc-200 rounded-lg overflow-hidden font-sans text-left shadow-sm break-inside-avoid mb-4">
               <div className="relative aspect-[1.91/1] w-full bg-zinc-100 overflow-hidden">
                   {imgSrc ? (
                     <img src={imgSrc} alt="Preview" className="w-full h-full object-cover" />
@@ -43,7 +43,7 @@ export function SocialPreviewCard({ platform, image, title, description, domain 
 
   if (platform === 'facebook') {
       return (
-          <div className="w-[500px] bg-white border border-zinc-200 rounded overflow-hidden font-sans text-left shadow-sm">
+          <div className="w-full bg-white border border-zinc-200 rounded overflow-hidden font-sans text-left shadow-sm break-inside-avoid mb-4">
                <div className="relative aspect-[1.91/1] w-full bg-zinc-100 overflow-hidden">
                   {imgSrc ? (
                     <img src={imgSrc} alt="Preview" className="w-full h-full object-cover" />
@@ -62,7 +62,7 @@ export function SocialPreviewCard({ platform, image, title, description, domain 
 
   if (platform === 'twitter') {
       return (
-          <div className="w-[500px] bg-white border border-zinc-200 rounded-xl overflow-hidden font-sans text-left shadow-sm">
+          <div className="w-full bg-white border border-zinc-200 rounded-xl overflow-hidden font-sans text-left shadow-sm break-inside-avoid mb-4">
                <div className="relative aspect-[1.91/1] w-full bg-zinc-100 overflow-hidden">
                   {imgSrc ? (
                     <img src={imgSrc} alt="Preview" className="w-full h-full object-cover" />
@@ -81,7 +81,7 @@ export function SocialPreviewCard({ platform, image, title, description, domain 
 
   if (platform === 'whatsapp') {
       return (
-           <div className="w-[300px] bg-[#dcf8c6] p-2 rounded-lg font-sans text-left relative shadow-sm">
+           <div className="w-full max-w-[300px] mx-auto bg-[#dcf8c6] p-2 rounded-lg font-sans text-left relative shadow-sm break-inside-avoid mb-4">
                <div className="bg-[#f7f7f7] rounded-lg overflow-hidden">
                     <div className="bg-zinc-200 aspect-video w-full overflow-hidden relative">
                        {imgSrc ? (
@@ -102,7 +102,7 @@ export function SocialPreviewCard({ platform, image, title, description, domain 
 
    if (platform === 'instagram') {
       return (
-          <div className="w-[400px] bg-white border border-zinc-200 rounded font-sans text-left shadow-sm">
+          <div className="w-full bg-white border border-zinc-200 rounded font-sans text-left shadow-sm break-inside-avoid mb-4">
                <div className="flex items-center p-3 border-b border-zinc-100">
                    <div className="w-8 h-8 rounded-full bg-zinc-200 mr-3"></div>
                    <span className="text-sm font-semibold text-slate-900">{domain?.split('.')[0] || 'username'}</span>

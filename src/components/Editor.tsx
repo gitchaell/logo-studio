@@ -57,7 +57,7 @@ export default function Editor({ lang }: EditorProps) {
   const [colors, setColors] = useState<Record<string, string>>({});
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
   const [showGuide, setShowGuide] = useState(true);
-  const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
+  const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 180, 192, 512, 1024]);
   const [selectedExtraAssets, setSelectedExtraAssets] = useState<Set<string>>(new Set(['favicon', 'splash']));
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
@@ -248,7 +248,7 @@ export default function Editor({ lang }: EditorProps) {
       zip.file('app.json', JSON.stringify(appJson, null, 2));
 
       // Generate PNGs Helper
-      const generatePng = (width: number, height: number, scaleFactor: number = 1): Promise<Blob | null> => {
+      const generatePng = (width: number, height: number, scaleFactor: number = 1, isFavicon: boolean = false): Promise<Blob | null> => {
           return new Promise((resolve) => {
               const img = new Image();
               const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -261,25 +261,27 @@ export default function Editor({ lang }: EditorProps) {
                   const ctx = canvas.getContext('2d');
                   if (ctx) {
                       // Canvas logic for export
-                      const radius = (project.borderRadius || 0) * (width / 512);
+                      if (!isFavicon) {
+                          const radius = (project.borderRadius || 0) * (width / 512);
 
-                      ctx.beginPath();
-                      ctx.moveTo(radius, 0);
-                      ctx.lineTo(width - radius, 0);
-                      ctx.quadraticCurveTo(width, 0, width, radius);
-                      ctx.lineTo(width, height - radius);
-                      ctx.quadraticCurveTo(width, height, width - radius, height);
-                      ctx.lineTo(radius, height);
-                      ctx.quadraticCurveTo(0, height, 0, height - radius);
-                      ctx.lineTo(0, radius);
-                      ctx.quadraticCurveTo(0, 0, radius, 0);
-                      ctx.closePath();
+                          ctx.beginPath();
+                          ctx.moveTo(radius, 0);
+                          ctx.lineTo(width - radius, 0);
+                          ctx.quadraticCurveTo(width, 0, width, radius);
+                          ctx.lineTo(width, height - radius);
+                          ctx.quadraticCurveTo(width, height, width - radius, height);
+                          ctx.lineTo(radius, height);
+                          ctx.quadraticCurveTo(0, height, 0, height - radius);
+                          ctx.lineTo(0, radius);
+                          ctx.quadraticCurveTo(0, 0, radius, 0);
+                          ctx.closePath();
 
-                      ctx.clip();
+                          ctx.clip();
+                      }
 
                       if (project.backgroundColor) {
                           ctx.fillStyle = project.backgroundColor;
-                          ctx.fill();
+                          ctx.fillRect(0, 0, width, height);
                       }
 
                       ctx.save();
@@ -333,7 +335,7 @@ export default function Editor({ lang }: EditorProps) {
 
       // Generate Favicon
       if (selectedExtraAssets.has('favicon')) {
-          const faviconPromise = generatePng(32, 32).then(blob => {
+          const faviconPromise = generatePng(32, 32, 1, true).then(blob => {
               if (blob) zip.file('favicon.ico', blob);
           });
           promises.push(faviconPromise);
@@ -520,7 +522,7 @@ export default function Editor({ lang }: EditorProps) {
                              />
 
                              {/* Inner Square Guide */}
-                             <rect x="128" y="128" width="256" height="256" rx="40" />
+                             <rect x="160" y="160" width="192" height="192" rx="30" />
                         </g>
                     </svg>
                   </div>
