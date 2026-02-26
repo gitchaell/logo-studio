@@ -26,6 +26,8 @@ export default function Editor({ lang }: EditorProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [colors, setColors] = useState<Record<string, string>>({});
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
+  const [showGuide, setShowGuide] = useState(true);
+  const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
 
   const t = (key: string) => {
     // @ts-ignore
@@ -113,13 +115,66 @@ export default function Editor({ lang }: EditorProps) {
       if (!project) return;
       const zip = new JSZip();
       const svgString = getProcessedSvg();
+      const sortedSizes = [...selectedSizes].sort((a, b) => a - b);
+      const largestSize = sortedSizes.length > 0 ? sortedSizes[sortedSizes.length - 1] : undefined;
 
       // Add SVG
       zip.file(`${project.name}.svg`, svgString);
 
+      // Manifest.json
+      const manifest = {
+          name: project.name,
+          short_name: project.shortName || project.name,
+          description: project.description || '',
+          theme_color: project.themeColor || '#ffffff',
+          background_color: project.appBackgroundColor || '#ffffff',
+          display: project.displayMode || 'standalone',
+          orientation: project.orientation || 'any',
+          start_url: project.startUrl || '/',
+          icons: sortedSizes.map(size => ({
+              src: `icon-${size}.png`,
+              sizes: `${size}x${size}`,
+              type: 'image/png'
+          }))
+      };
+      zip.file('manifest.json', JSON.stringify(manifest, null, 2));
+
+      // app.json (Expo)
+      const appJson = {
+          expo: {
+              name: project.name,
+              slug: project.shortName?.toLowerCase().replace(/\s+/g, '-') || project.name.toLowerCase().replace(/\s+/g, '-'),
+              version: "1.0.0",
+              orientation: project.orientation === 'any' ? 'default' : project.orientation,
+              icon: largestSize ? `./icon-${largestSize}.png` : undefined,
+              userInterfaceStyle: "light",
+              splash: {
+                  image: largestSize ? `./icon-${largestSize}.png` : undefined,
+                  resizeMode: "contain",
+                  backgroundColor: project.appBackgroundColor || "#ffffff"
+              },
+              ios: {
+                  supportsTablet: true,
+                  bundleIdentifier: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
+              },
+              android: {
+                  adaptiveIcon: {
+                      foregroundImage: largestSize ? `./icon-${largestSize}.png` : undefined,
+                      backgroundColor: project.appBackgroundColor || "#ffffff"
+                  },
+                  package: `com.example.${project.shortName?.toLowerCase().replace(/\s+/g, '') || 'app'}`
+              },
+              web: {
+                  favicon: sortedSizes.includes(32) ? "./icon-32.png" : undefined
+              },
+              description: project.description || ''
+          }
+      };
+      zip.file('app.json', JSON.stringify(appJson, null, 2));
+
+
       // Generate PNGs
-      const sizes = [16, 32, 64, 128, 512, 1024];
-      const promises = sizes.map(async (size) => {
+      const promises = selectedSizes.map(async (size) => {
           return new Promise<void>((resolve) => {
               const img = new Image();
               const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -131,7 +186,30 @@ export default function Editor({ lang }: EditorProps) {
                   canvas.height = size;
                   const ctx = canvas.getContext('2d');
                   if (ctx) {
+                      // Apply border radius and background
+                      const radius = (project.borderRadius || 0) * (size / 512); // Scale radius relative to 512px canvas
+
+                      ctx.beginPath();
+                      ctx.moveTo(radius, 0);
+                      ctx.lineTo(size - radius, 0);
+                      ctx.quadraticCurveTo(size, 0, size, radius);
+                      ctx.lineTo(size, size - radius);
+                      ctx.quadraticCurveTo(size, size, size - radius, size);
+                      ctx.lineTo(radius, size);
+                      ctx.quadraticCurveTo(0, size, 0, size - radius);
+                      ctx.lineTo(0, radius);
+                      ctx.quadraticCurveTo(0, 0, radius, 0);
+                      ctx.closePath();
+
+                      ctx.clip();
+
+                      if (project.backgroundColor) {
+                          ctx.fillStyle = project.backgroundColor;
+                          ctx.fill();
+                      }
+
                       ctx.drawImage(img, 0, 0, size, size);
+
                       canvas.toBlob((blob) => {
                           if (blob) zip.file(`icon-${size}.png`, blob);
                           URL.revokeObjectURL(url);
@@ -189,7 +267,7 @@ export default function Editor({ lang }: EditorProps) {
          </div>
 
          {/* Edit Mode Canvas */}
-         <div className={`flex-1 relative bg-zinc-100 dark:bg-black/50 overflow-hidden cursor-move ${activeTab === 'edit' ? 'block' : 'hidden'}`}
+         <div className={`flex-1 relative bg-zinc-50 dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] overflow-hidden cursor-move ${activeTab === 'edit' ? 'block' : 'hidden'}`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -204,8 +282,28 @@ export default function Editor({ lang }: EditorProps) {
                     transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                 }}
             >
+                {showGuide && (
+                  <div className="absolute w-[512px] h-[512px] border border-zinc-300 dark:border-zinc-700 z-0 opacity-50">
+                    {/* Grid Lines */}
+                    <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
+                      {[...Array(16)].map((_, i) => (
+                        <div key={i} className="border border-zinc-200/50 dark:border-zinc-700/50"></div>
+                      ))}
+                    </div>
+                    {/* Center Cross */}
+                    <div className="absolute top-1/2 left-0 right-0 h-px bg-blue-500/50"></div>
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-blue-500/50"></div>
+                    {/* Safe Area Circle */}
+                    <div className="absolute inset-8 rounded-full border border-dashed border-zinc-400/50"></div>
+                  </div>
+                )}
+
                 <div
-                className="w-[512px] h-[512px] bg-transparent relative"
+                className="w-[512px] h-[512px] relative z-10 overflow-hidden"
+                style={{
+                    backgroundColor: project.backgroundColor || 'transparent',
+                    borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
+                }}
                 dangerouslySetInnerHTML={{ __html: getProcessedSvg() }}
                 />
             </div>
@@ -223,12 +321,26 @@ export default function Editor({ lang }: EditorProps) {
                 <button onClick={() => { setScale(1); setPosition({x:0,y:0}); }} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300" title={t('editor.reset_view')}>
                     <RefreshCw className="w-4 h-4" />
                 </button>
+                <div className="w-px h-4 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  className={`p-1 rounded-full transition-colors ${showGuide ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300'}`}
+                  title="Toggle Guide"
+                >
+                    <Layout className="w-4 h-4" />
+                </button>
             </div>
          </div>
 
          {/* Preview Mode */}
          <div className={`flex-1 bg-zinc-50 dark:bg-zinc-950 overflow-hidden ${activeTab === 'preview' ? 'block' : 'hidden'}`}>
-             <PreviewGallery svgContent={getProcessedSvg()} projectName={project.name} lang={lang} />
+             <PreviewGallery
+                svgContent={getProcessedSvg()}
+                projectName={project.name}
+                lang={lang}
+                borderRadius={project.borderRadius}
+                backgroundColor={project.backgroundColor}
+             />
          </div>
       </main>
 
@@ -250,6 +362,139 @@ export default function Editor({ lang }: EditorProps) {
             </div>
 
             <div className="p-6 flex-1 space-y-8 overflow-y-auto">
+             {/* Logo Style */}
+             <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Logo Style</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 mb-2 block">Background Color</label>
+                        <div className="flex items-center space-x-2">
+                             <div className="w-8 h-8 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                <input
+                                    type="color"
+                                    value={project.backgroundColor || '#ffffff'}
+                                    onChange={(e) => db.projects.update(project.id!, { backgroundColor: e.target.value })}
+                                    className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                />
+                             </div>
+                             <button
+                                onClick={() => db.projects.update(project.id!, { backgroundColor: undefined })}
+                                className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 underline"
+                             >
+                                Clear
+                             </button>
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                             <label className="text-xs font-medium text-slate-500">Border Radius</label>
+                             <span className="text-xs font-mono text-slate-400">{project.borderRadius || 0}px</span>
+                        </div>
+                        <input
+                            type="range"
+                            min="0"
+                            max="256"
+                            value={project.borderRadius || 0}
+                            onChange={(e) => db.projects.update(project.id!, { borderRadius: Number(e.target.value) })}
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+             </div>
+
+             {/* PWA / Manifest Settings */}
+             <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">PWA & Manifest</h3>
+                <div className="space-y-4">
+                     <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Short Name</label>
+                        <input
+                            type="text"
+                            value={project.shortName || ''}
+                            onChange={(e) => db.projects.update(project.id!, { shortName: e.target.value })}
+                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                            placeholder="App"
+                        />
+                     </div>
+                     <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Description</label>
+                        <textarea
+                            value={project.description || ''}
+                            onChange={(e) => db.projects.update(project.id!, { description: e.target.value })}
+                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none resize-none"
+                            rows={2}
+                            placeholder="My awesome app..."
+                        />
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                             <label className="text-xs font-medium text-slate-500 mb-1 block">Theme Color</label>
+                             <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                    <input
+                                        type="color"
+                                        value={project.themeColor || '#ffffff'}
+                                        onChange={(e) => db.projects.update(project.id!, { themeColor: e.target.value })}
+                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                    />
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400">{project.themeColor}</span>
+                             </div>
+                        </div>
+                        <div>
+                             <label className="text-xs font-medium text-slate-500 mb-1 block">App Bg Color</label>
+                             <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                    <input
+                                        type="color"
+                                        value={project.appBackgroundColor || '#ffffff'}
+                                        onChange={(e) => db.projects.update(project.id!, { appBackgroundColor: e.target.value })}
+                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                    />
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400">{project.appBackgroundColor}</span>
+                             </div>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Display</label>
+                            <select
+                                value={project.displayMode || 'standalone'}
+                                onChange={(e) => db.projects.update(project.id!, { displayMode: e.target.value as any })}
+                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="standalone">Standalone</option>
+                                <option value="fullscreen">Fullscreen</option>
+                                <option value="minimal-ui">Minimal UI</option>
+                                <option value="browser">Browser</option>
+                            </select>
+                         </div>
+                         <div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Orientation</label>
+                            <select
+                                value={project.orientation || 'any'}
+                                onChange={(e) => db.projects.update(project.id!, { orientation: e.target.value as any })}
+                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="any">Any</option>
+                                <option value="natural">Natural</option>
+                                <option value="portrait">Portrait</option>
+                                <option value="landscape">Landscape</option>
+                            </select>
+                         </div>
+                     </div>
+                     <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Start URL</label>
+                        <input
+                            type="text"
+                            value={project.startUrl || '/'}
+                            onChange={(e) => db.projects.update(project.id!, { startUrl: e.target.value })}
+                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                        />
+                     </div>
+                </div>
+             </div>
             {/* Colors */}
             <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">{t('editor.recolor')}</h3>
@@ -297,7 +542,21 @@ export default function Editor({ lang }: EditorProps) {
             </div>
             </div>
 
-            <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 shrink-0">
+            <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-black/20 shrink-0 space-y-4">
+                <div>
+                   <label className="text-xs font-medium text-slate-500 mb-2 block">Export Sizes</label>
+                   <div className="flex flex-wrap gap-2">
+                     {[16, 32, 64, 128, 192, 512, 1024].map(size => (
+                        <button
+                           key={size}
+                           onClick={() => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
+                           className={`px-2 py-1 text-[10px] font-mono rounded border ${selectedSizes.includes(size) ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300' : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-slate-500'}`}
+                        >
+                            {size}
+                        </button>
+                     ))}
+                   </div>
+                </div>
                 <button
                     onClick={handleExport}
                     className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg shadow-sm font-medium transition-colors"

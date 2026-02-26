@@ -2,76 +2,36 @@
 > astro-template@1.0.0 dev
 > astro dev
 
-01:52:49 [types] Generated 0ms
-01:52:49 [content] Syncing content
-01:52:49 [content] Synced content
-01:52:49 [vite] Re-optimizing dependencies because vite config has changed
+02:30:23 [types] Generated 0ms
+02:30:23 [content] Syncing content
+02:30:23 [content] Synced content
+02:30:23 [vite] Re-optimizing dependencies because vite config has changed
 
- astro  v5.5.2 ready in 1075 ms
+ astro  v5.5.2 ready in 1066 ms
 
 ┃ Local    http://localhost:4321/
 ┃ Network  use --host to expose
 
-01:52:49 watching for file changes...
+02:30:23 watching for file changes...
 
  update  ▶ New version of Astro available: 5.18.0
   Run npx @astrojs/upgrade to update
 
-01:54:12 [200] /en/ 364ms
-01:54:15 [200] /en/editor 48ms
-01:54:15 [watch] server.log
-01:54:15 [watch] server.log
-01:55:08 [watch] /src/components/logo-studio/Editor.tsx, /src/styles/global.css
-01:55:08 [watch] src/components/logo-studio/Editor.tsx
-01:55:08 [watch] server.log
-01:55:08 [watch] server.log
-01:55:22 [watch] verification/verify_app.py
-01:55:22 [watch] verification/verify_app.py
-01:55:22 [watch] /src/styles/global.css
-01:55:22 [watch] test_logo.svg
-01:55:22 [watch] server.log
-01:55:22 [watch] server.log
-02:02:10 [watch] /src/components/logo-studio/Sidebar.tsx, /src/styles/global.css
-02:02:10 [watch] src/components/logo-studio/Sidebar.tsx
-02:02:10 [watch] server.log
-02:02:10 [watch] server.log
-02:03:12 [watch] /src/components/logo-studio/Editor.tsx, /src/styles/global.css
-02:03:12 [watch] src/components/logo-studio/Editor.tsx
-02:03:12 [watch] server.log
-02:03:12 [watch] server.log
-02:04:54 [watch] /src/styles/global.css
-02:04:54 [watch] test_logo.svg
-02:04:54 [watch] server.log
-02:04:54 [watch] server.log
-02:05:06 [200] /en/ 99ms
-02:05:06 [watch] server.log
-02:05:06 [watch] server.log
-02:05:07 [200] /en/editor 36ms
-02:05:07 [watch] server.log
-02:05:07 [watch] server.log
-02:05:22 [watch] verification/verify_new_features.py
-02:05:22 [watch] verification/verify_new_features.py
-02:05:22 [watch] /src/styles/global.css
-02:05:22 [watch] test_logo.svg
-02:05:22 [watch] server.log
-02:05:22 [watch] server.log
-02:07:50 [watch] src/components/logo-studio/previews/MobileIconPreview.tsx
-02:07:50 [watch] src/components/logo-studio/previews/MobileIconPreview.tsx
-02:07:50 [watch] server.log
-02:07:50 [watch] server.log
-02:08:24 [watch] /src/styles/global.css, /src/components/logo-studio/Sidebar.tsx, /src/components/logo-studio/Gallery.tsx, /src/components/ui/LanguageSelector.tsx, /src/components/logo-studio/Editor.tsx
-02:08:24 [watch] src/i18n/ui.ts
-02:08:24 [watch] server.log
-02:08:24 [watch] server.log
-02:08:56 [watch] /src/components/logo-studio/previews/PreviewGallery.tsx, /src/styles/global.css
-02:08:56 [watch] src/components/logo-studio/previews/PreviewGallery.tsx
-02:08:56 [watch] server.log
-02:08:56 [watch] server.log
-02:09:03 [watch] /src/components/logo-studio/Editor.tsx, /src/styles/global.css
-02:09:03 [watch] src/components/logo-studio/Editor.tsx
-02:09:03 [watch] server.log
-02:09:03 [watch] server.log
-02:09:10 [watch] /src/components/logo-studio/Gallery.tsx, /src/styles/global.css
-02:09:10 [watch] src/components/logo-studio/Gallery.tsx
-02:09:10 [watch] server.log
-02:09:10 [watch] server.log
+02:31:59 [200] /en/ 448ms
+02:32:02 [200] /en/editor 39ms
+02:32:02 [watch] server.log
+02:32:02 [watch] server.log
+02:32:31 [watch] verification_script.py
+02:32:31 [watch] verification_script.py
+02:32:31 [watch] server.log
+02:32:31 [watch] server.log
+02:33:04 [watch] /src/styles/global.css
+02:33:04 [watch] sample.svg
+02:33:04 [watch] verification_script.py
+02:33:04 [watch] verification_script.py
+02:33:04 [watch] server.log
+02:33:04 [watch] server.log
+02:34:51 [watch] /src/components/logo-studio/Editor.tsx, /src/styles/global.css
+02:34:51 [watch] src/components/logo-studio/Editor.tsx
+02:34:51 [watch] server.log
+02:34:51 [watch] server.log

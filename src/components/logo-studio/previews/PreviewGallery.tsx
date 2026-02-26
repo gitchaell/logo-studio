@@ -6,9 +6,11 @@ interface PreviewGalleryProps {
   svgContent: string;
   projectName: string;
   lang: string;
+  borderRadius?: number;
+  backgroundColor?: string;
 }
 
-export function PreviewGallery({ svgContent, projectName, lang }: PreviewGalleryProps) {
+export function PreviewGallery({ svgContent, projectName, lang, borderRadius, backgroundColor }: PreviewGalleryProps) {
   const t = (key: string) => {
     // @ts-ignore
     return ui[lang]?.[key] || ui[defaultLang]?.[key] || key;
@@ -55,8 +57,14 @@ export function PreviewGallery({ svgContent, projectName, lang }: PreviewGallery
                 </div>
 
                 <div className="relative h-full flex flex-col items-center pt-20 px-4">
-                    <div className="w-16 h-16 bg-white rounded-[14px] shadow-xl overflow-hidden p-2 flex items-center justify-center mb-2 transition-transform hover:scale-105 duration-200 cursor-pointer">
-                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full object-contain" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                    <div
+                        className="w-16 h-16 shadow-xl overflow-hidden flex items-center justify-center mb-2 transition-transform hover:scale-105 duration-200 cursor-pointer"
+                        style={{
+                            backgroundColor: backgroundColor || '#ffffff',
+                            borderRadius: borderRadius ? `${borderRadius * (64/512)}px` : '14px'
+                        }}
+                    >
+                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
                     </div>
                     <span className="text-[11px] font-medium text-slate-800 text-center drop-shadow-sm truncate w-20">{projectName || 'App'}</span>
 
@@ -89,8 +97,14 @@ export function PreviewGallery({ svgContent, projectName, lang }: PreviewGallery
                 </div>
 
                 <div className="relative h-full flex flex-col items-center pt-24 px-4">
-                    <div className="w-14 h-14 bg-white rounded-full shadow-lg overflow-hidden p-3 flex items-center justify-center mb-2 ring-2 ring-white/20 hover:ring-white/40 transition-all cursor-pointer">
-                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full object-contain" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                    <div
+                        className="w-14 h-14 shadow-lg overflow-hidden flex items-center justify-center mb-2 ring-2 ring-white/20 hover:ring-white/40 transition-all cursor-pointer"
+                        style={{
+                            backgroundColor: backgroundColor || '#ffffff',
+                            borderRadius: borderRadius ? `${borderRadius * (56/512)}px` : '50%'
+                        }}
+                    >
+                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
                     </div>
                     <span className="text-[11px] font-medium text-white/90 text-center drop-shadow-md truncate w-20">{projectName || 'App'}</span>
 
