@@ -1,7 +1,7 @@
 ---
 import Head from "@/components/Head.astro";
 import Analytics from "@vercel/analytics/astro";
-import Sidebar from "@/components/logo-studio/Sidebar";
+import Sidebar from "@/components/Sidebar.tsx";
 import { ToastContainer } from "@/components/ui/Toast";
 
 interface Props {
@@ -20,7 +20,7 @@ const { title, description, lang = Astro.currentLocale || "en" } = Astro.props;
 		description={description}
 	/>
 	<body
-		class="bg-zinc-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-50 h-screen overflow-hidden flex transition-colors duration-200 font-sans"
+		class="bg-zinc-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-50 h-screen overflow-hidden flex flex-col md:flex-row transition-colors duration-200 font-sans"
 	>
 		<Sidebar client:only="react" lang={lang} />
 

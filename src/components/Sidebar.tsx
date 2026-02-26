@@ -2,11 +2,11 @@ import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Grid, PenTool, Plus } from 'lucide-react';
 import React from 'react';
-import { LanguageSelector } from '../ui/LanguageSelector';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { LanguageSelector } from './ui/LanguageSelector';
+import { ThemeToggle } from './ui/ThemeToggle';
 import { ui, defaultLang } from '@/i18n/ui';
-import { useToast } from '../ui/Toast';
-import { ResizablePanel } from '../ui/ResizablePanel';
+import { useToast } from './ui/Toast';
+import { ResizablePanel } from './ui/ResizablePanel';
 
 interface SidebarProps {
   lang: string;
@@ -60,7 +60,7 @@ export default function Sidebar({ lang }: SidebarProps) {
       minWidth={200}
       maxWidth={320}
       storageKey="main-sidebar"
-      className="z-20 h-full bg-white dark:bg-zinc-900"
+      className="z-20 !h-auto md:!h-full !w-full md:!w-auto bg-white dark:bg-zinc-900 border-b md:border-b-0"
     >
        {/* Header */}
        <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center space-x-3 shrink-0">
@@ -81,12 +81,6 @@ export default function Sidebar({ lang }: SidebarProps) {
                 </label>
             </div>
 
-            <nav className="space-y-1">
-                <a href={`/${lang}/`} className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${currentPath === `/${lang}/` || currentPath === `/${lang}` ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Grid className="w-4 h-4 mr-3 shrink-0" />
-                    <span className="whitespace-nowrap">{t('sidebar.my_projects')}</span>
-                </a>
-            </nav>
 
              {/* Dynamic Project List */}
             <div className="mt-4 space-y-1">
