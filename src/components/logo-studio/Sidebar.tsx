@@ -107,7 +107,7 @@ export default function Sidebar({ lang }: SidebarProps) {
        </div>
 
        {/* Footer */}
-       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 overflow-hidden">
+       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
           <ThemeToggle />
           <LanguageSelector currentLang={lang} />
        </div>

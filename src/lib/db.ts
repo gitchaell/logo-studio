@@ -4,6 +4,20 @@ export interface Project {
   id?: number;
   name: string;
   svgContent: string;
+
+  // PWA / Manifest
+  shortName?: string;
+  description?: string;
+  themeColor?: string;
+  appBackgroundColor?: string;
+  displayMode?: 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
+  orientation?: 'any' | 'natural' | 'landscape' | 'portrait';
+  startUrl?: string;
+
+  // Style
+  borderRadius?: number;
+  backgroundColor?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
