@@ -119,6 +119,9 @@ export default function Editor({ lang }: EditorProps) {
              setScale(project.logoScale || 1);
              setPosition({ x: project.logoX || 0, y: project.logoY || 0 });
         }
+        if (project.colors) {
+            setColors(project.colors);
+        }
         setInitialized(true);
     }
   }, [project, initialized]);
@@ -249,44 +252,49 @@ export default function Editor({ lang }: EditorProps) {
   };
 
   const handleColorChange = (original: string, newColor: string) => {
-    setColors(prev => ({ ...prev, [original]: newColor }));
+    const nextColors = { ...colors, [original]: newColor };
+    setColors(nextColors);
+    if (project && id) {
+        db.projects.update(id, { colors: nextColors });
+    }
   };
 
   const handleSave = async () => {
     if (project && id) {
        await db.projects.update(id, {
            svgContent: getProcessedSvg(),
+           colors: colors,
            updatedAt: new Date()
        });
        addToast(t('editor.saved'), 'success');
     }
   };
 
-  const handleToggleSize = (size: number) => {
+  const handleToggleSize = async (size: number) => {
       if (!project || !id) return;
       const current = project.selectedSizes || AVAILABLE_SIZES;
       const next = current.includes(size)
         ? current.filter(s => s !== size)
         : [...current, size].sort((a, b) => a - b);
-      db.projects.update(id, { selectedSizes: next });
+      await db.projects.update(id, { selectedSizes: next });
   };
 
-  const handleSelectAllSizes = () => {
+  const handleSelectAllSizes = async () => {
       if (!project || !id) return;
-      db.projects.update(id, { selectedSizes: AVAILABLE_SIZES });
+      await db.projects.update(id, { selectedSizes: AVAILABLE_SIZES });
   };
 
-  const handleDeselectAllSizes = () => {
+  const handleDeselectAllSizes = async () => {
       if (!project || !id) return;
-      db.projects.update(id, { selectedSizes: [] });
+      await db.projects.update(id, { selectedSizes: [] });
   };
 
-  const handleToggleExtraAsset = (asset: string) => {
+  const handleToggleExtraAsset = async (asset: string) => {
       if (!project || !id) return;
       const current = new Set(project.selectedExtraAssets || ['favicon', 'splash']);
       if (current.has(asset)) current.delete(asset);
       else current.add(asset);
-      db.projects.update(id, { selectedExtraAssets: Array.from(current) });
+      await db.projects.update(id, { selectedExtraAssets: Array.from(current) });
   };
 
   const handleExport = async () => {
@@ -483,55 +491,47 @@ export default function Editor({ lang }: EditorProps) {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {/* Canvas Background (Artboard) */}
                 <div
-                   className="absolute w-[512px] h-[512px] overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm"
+                   className="absolute w-[512px] h-[512px] border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center overflow-hidden"
                    style={{
                        backgroundColor: project.backgroundColor || 'transparent',
                        borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
                    }}
                 >
                     {/* Render the LOGO inside the artboard with correct dimensions and transform */}
-                    <div className="w-full h-full flex items-center justify-center">
                          <div
                             style={{
                                 width: logoDimensions.width,
                                 height: logoDimensions.height,
                                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                                 transformOrigin: 'center',
-                                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                                flexShrink: 0 // Prevent shrinking
                             }}
                          >
                               <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
                          </div>
-                    </div>
                 </div>
 
                 {/* Selection Overlay */}
-                {/* Visual match for the logo inside the artboard */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {/* Matches the position of the artboard content exactly */}
+                <div className="absolute w-[512px] h-[512px] flex items-center justify-center pointer-events-none">
                     <div
                         style={{
                             width: logoDimensions.width,
                             height: logoDimensions.height,
                             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                             transformOrigin: 'center',
-                            // Use outline instead of border to avoid messing with dimensions if using border-box
-                            // or position absolute inset-0 for outline
                             position: 'relative'
                         }}
                     >
                         {/* Outline */}
-                        {/* We use a child for the border to ensure it sits exactly on the bounding box */}
                         <div className="absolute inset-0 border border-blue-500 opacity-50 pointer-events-none"></div>
 
-                        {/* Handles - Inverse scale to keep size constant? No, simpler to just let them scale or use a different overlay technique.
-                            For now, let's keep them scaling with the object as per previous behavior, but fixed position logic.
-                            Actually, if we scale the parent, handles scale too. To keep handles constant size visually, we'd need to counter-scale them.
-                            Let's try standard behavior first (handles scale).
-                        */}
+                        {/* Handles */}
                         <div
                             className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
-                            style={{ transform: `scale(${1/scale})` }} // Counter-scale handles to keep visual size constant
+                            style={{ transform: `scale(${1/scale})` }}
                         />
                         <div
                             className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
