@@ -1,9 +1,8 @@
 ---
 import Head from "@/components/Head.astro";
 import Analytics from "@vercel/analytics/astro";
-import LanguageSelector from "@/components/LanguageSelector.astro";
-import ThemeToggle from "@/components/ThemeToggle.astro";
-import { Grid, PenTool } from "lucide-react";
+import Sidebar from "@/components/logo-studio/Sidebar";
+import { ToastContainer } from "@/components/ui/Toast";
 
 interface Props {
 	title: string;
@@ -23,38 +22,11 @@ const { title, description, lang = Astro.currentLocale || "en" } = Astro.props;
 	<body
 		class="bg-zinc-50 dark:bg-zinc-950 text-slate-900 dark:text-slate-50 h-screen overflow-hidden flex transition-colors duration-200 font-sans"
 	>
-		<!-- Sidebar -->
-		<aside class="w-64 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-white dark:bg-zinc-900 h-full shrink-0 z-20">
-			<div class="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center space-x-3 shrink-0">
-				<div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-					<PenTool className="w-5 h-5" />
-				</div>
-				<h1 class="font-bold text-lg tracking-tight">Logo Studio</h1>
-			</div>
-
-			<div class="flex-1 overflow-y-auto p-4 space-y-6">
-				<div>
-					<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-2">Library</h3>
-					<nav class="space-y-1">
-						<a href={`/${lang}/`} class="w-full flex items-center px-3 py-2 text-sm font-medium rounded-md bg-zinc-100 dark:bg-zinc-800 text-slate-900 dark:text-white transition-colors">
-							<Grid className="w-5 h-5 mr-3" />
-							<span>My Projects</span>
-						</a>
-					</nav>
-				</div>
-			</div>
-
-			<!-- User Footer Removed as requested -->
-		</aside>
+		<Sidebar client:only="react" lang={lang} />
 
 		<!-- Main Content Wrapper -->
 		<div class="flex-1 flex flex-col h-full relative overflow-hidden">
-			<!-- Top Right Controls (Lang/Theme) -->
-			<div class='absolute top-4 right-8 z-50 flex items-center gap-2'>
-				<LanguageSelector />
-				<ThemeToggle />
-			</div>
-
+            <ToastContainer client:load />
 			<slot />
 		</div>
 

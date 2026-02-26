@@ -15,5 +15,5 @@ const { lang } = Astro.params;
 	description="Edit and export your logo."
 	lang={lang}
 >
-	<EditorComponent client:only="react" />
+	<EditorComponent client:only="react" lang={lang} />
 </StudioLayout>
