@@ -34,7 +34,7 @@ export function ManifestPreview({
   return (
     <div className="flex flex-col items-center justify-center p-8 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
       <div
-        className={`relative shadow-xl overflow-hidden border-[6px] border-zinc-800 rounded-[2rem] transition-all duration-300 flex flex-col ${
+        className={`relative shadow-xl overflow-hidden border-[6px] border-zinc-800 rounded-3xl transition-all duration-300 flex flex-col ${
             isLandscape ? 'w-64 h-32' : 'w-32 h-64'
         }`}
         style={{

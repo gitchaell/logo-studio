@@ -17,17 +17,17 @@ interface PreviewGalleryProps {
   backgroundColor?: string;
   displayMode?: 'standalone' | 'fullscreen' | 'minimal-ui' | 'browser';
   orientation?: 'any' | 'natural' | 'landscape' | 'portrait';
-  selectedSizes?: number[];
-  onToggleSize?: (size: number) => void;
-  onSelectAllSizes?: () => void;
-  onDeselectAllSizes?: () => void;
+  selectedSizes: number[];
+  onToggleSize: (size: number) => void;
+  onSelectAllSizes: () => void;
+  onDeselectAllSizes: () => void;
   scale?: number;
   position?: { x: number; y: number };
   shortName?: string;
   description?: string;
   themeColor?: string;
-  selectedExtraAssets?: Set<string>;
-  onToggleExtraAsset?: (asset: string) => void;
+  selectedExtraAssets: Set<string>;
+  onToggleExtraAsset: (asset: string) => void;
 }
 
 export function PreviewGallery({
@@ -47,7 +47,7 @@ export function PreviewGallery({
     shortName,
     description,
     themeColor,
-    selectedExtraAssets = new Set(),
+    selectedExtraAssets,
     onToggleExtraAsset
 }: PreviewGalleryProps) {
   const [activeTab, setActiveTab] = useLocalStorage<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('preview-active-tab', 'web');
@@ -353,7 +353,7 @@ export function PreviewGallery({
                                         const size = parseInt(newSizeInput);
                                         if (size > 0 && !AVAILABLE_SIZES.includes(size) && !customSizes.includes(size)) {
                                             setCustomSizes(prev => [...prev, size].sort((a,b) => a-b));
-                                            onToggleSize?.(size);
+                                            onToggleSize(size);
                                             setNewSizeInput('');
                                         }
                                     }}
@@ -371,20 +371,20 @@ export function PreviewGallery({
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
                             {/* Favicon & Splash Previews with Selection UI */}
                             <div
-                                onClick={() => onToggleExtraAsset?.('favicon')}
+                                onClick={() => onToggleExtraAsset('favicon')}
                                 className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
-                                    selectedExtraAssets?.has('favicon')
+                                    selectedExtraAssets.has('favicon')
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                     : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
                                 }`}
                             >
                                  <div className="absolute top-3 right-3 z-10">
                                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                                        selectedExtraAssets?.has('favicon')
+                                        selectedExtraAssets.has('favicon')
                                         ? 'bg-blue-500 border-blue-500'
                                         : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
                                     }`}>
-                                        {selectedExtraAssets?.has('favicon') && <Check className="w-3 h-3 text-white" />}
+                                        {selectedExtraAssets.has('favicon') && <Check className="w-3 h-3 text-white" />}
                                     </div>
                                 </div>
                                 <div className="flex-1 flex items-center justify-center">
@@ -398,20 +398,20 @@ export function PreviewGallery({
                             </div>
 
                             <div
-                                onClick={() => onToggleExtraAsset?.('splash')}
+                                onClick={() => onToggleExtraAsset('splash')}
                                 className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
-                                    selectedExtraAssets?.has('splash')
+                                    selectedExtraAssets.has('splash')
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                     : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
                                 }`}
                             >
                                 <div className="absolute top-3 right-3 z-10">
                                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                                        selectedExtraAssets?.has('splash')
+                                        selectedExtraAssets.has('splash')
                                         ? 'bg-blue-500 border-blue-500'
                                         : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
                                     }`}>
-                                        {selectedExtraAssets?.has('splash') && <Check className="w-3 h-3 text-white" />}
+                                        {selectedExtraAssets.has('splash') && <Check className="w-3 h-3 text-white" />}
                                     </div>
                                 </div>
                                 <div className="flex-1 flex items-center justify-center">
@@ -432,7 +432,7 @@ export function PreviewGallery({
                                 return (
                                     <div
                                         key={size}
-                                        onClick={() => onToggleSize?.(size)}
+                                        onClick={() => onToggleSize(size)}
                                         className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 transition-all h-[240px] ${
                                             isSelected
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'

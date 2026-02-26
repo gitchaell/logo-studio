@@ -21,6 +21,10 @@ export interface Project {
   logoX?: number;
   logoY?: number;
 
+  // Exports
+  selectedSizes?: number[];
+  selectedExtraAssets?: string[];
+
   createdAt: Date;
   updatedAt: Date;
 }

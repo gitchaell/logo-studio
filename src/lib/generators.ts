@@ -90,7 +90,11 @@ export const generateOpenGraph = async (project: any, svgContent: string) => {
 
     try {
         // Fetch font
-        const fontData = await fetch('/fonts/inter/Inter-Bold.woff2').then(res => res.arrayBuffer());
+        const fontRes = await fetch('/fonts/inter/Inter-Bold.woff2');
+        if (!fontRes.ok) {
+            throw new Error(`Failed to load font: ${fontRes.statusText}`);
+        }
+        const fontData = await fontRes.arrayBuffer();
 
         const svg = await satori(markup, {
             width: 1200,
@@ -108,7 +112,8 @@ export const generateOpenGraph = async (project: any, svgContent: string) => {
         return svg;
     } catch (e) {
         console.error("Failed to generate OG image", e);
-        // Fallback or rethrow
-        return svgContent; // Fail gracefully?
+        // Fallback: Return raw SVG content (scaled/centered) or empty string to prevent crash
+        // For now, return original SVG content is better than crashing, but OG usually expects 1200x630
+        return svgContent;
     }
 };
