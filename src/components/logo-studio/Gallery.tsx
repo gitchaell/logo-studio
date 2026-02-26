@@ -1,18 +1,38 @@
 import { db, type Project } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { FilePlus, MoreVertical, Trash2, Edit2, Search, Plus } from 'lucide-react';
+import { FilePlus, Trash2, Edit2, Search, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { ui, defaultLang } from '@/i18n/ui';
+import { useToast } from '../ui/Toast';
+import { Modal } from '../ui/Modal';
 
-export default function Gallery() {
+interface GalleryProps {
+    lang: string;
+}
+
+export default function Gallery({ lang }: GalleryProps) {
   const projects = useLiveQuery<Project[]>(() => db.projects.toArray());
   const [searchQuery, setSearchQuery] = useState('');
+  const { addToast } = useToast();
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
+
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [projectToRename, setProjectToRename] = useState<Project | null>(null);
+  const [newProjectName, setNewProjectName] = useState('');
+
+  const t = (key: string) => {
+    // @ts-ignore
+    return ui[lang]?.[key] || ui[defaultLang]?.[key] || key;
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     if (file.type !== 'image/svg+xml') {
-      alert('Please upload an SVG file.');
+      addToast(t('alert.upload_svg'), 'error');
       return;
     }
 
@@ -26,26 +46,42 @@ export default function Gallery() {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        window.location.href = `editor?id=${id}`;
+        window.location.href = `/${lang}/editor?id=${id}`;
       } catch (error) {
         console.error('Failed to save project:', error);
-        alert('Failed to save project.');
+        addToast(t('alert.save_error'), 'error');
       }
     };
     reader.readAsText(file);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this project?')) {
-      await db.projects.delete(id);
+  const confirmDelete = (id: number) => {
+    setProjectToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (projectToDelete) {
+      await db.projects.delete(projectToDelete);
+      addToast('Project deleted', 'success');
+      setDeleteModalOpen(false);
+      setProjectToDelete(null);
     }
   };
 
-  const handleRename = async (project: Project) => {
-    const newName = prompt('Enter new project name:', project.name);
-    if (newName && newName !== project.name) {
-      await db.projects.update(project.id!, { name: newName, updatedAt: new Date() });
+  const startRename = (project: Project) => {
+    setProjectToRename(project);
+    setNewProjectName(project.name);
+    setRenameModalOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (projectToRename && newProjectName && newProjectName !== projectToRename.name) {
+      await db.projects.update(projectToRename.id!, { name: newProjectName, updatedAt: new Date() });
+      addToast('Project renamed', 'success');
     }
+    setRenameModalOpen(false);
+    setProjectToRename(null);
   };
 
   const filteredProjects = projects?.filter((p: Project) =>
@@ -64,7 +100,7 @@ export default function Gallery() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search projects..."
+              placeholder={t('gallery.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 dark:focus:ring-blue-500 w-64 shadow-sm text-slate-900 dark:text-white placeholder:text-slate-400"
@@ -72,7 +108,7 @@ export default function Gallery() {
           </div>
           <label className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm transition-all font-medium text-sm cursor-pointer">
             <Plus className="w-4 h-4" />
-            <span>New Project</span>
+            <span>{t('gallery.create_new')}</span>
             <input type="file" accept=".svg" className="hidden" onChange={handleFileUpload} />
           </label>
         </div>
@@ -88,11 +124,11 @@ export default function Gallery() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 mb-4">
                 <FilePlus className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white">No projects yet</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Upload an SVG to get started.</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white">{t('gallery.no_projects')}</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">{t('gallery.upload_prompt')}</p>
               <label className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-md transition-all font-medium cursor-pointer">
                 <Plus className="w-5 h-5" />
-                <span>Create New Project</span>
+                <span>{t('gallery.create_new')}</span>
                 <input type="file" accept=".svg" className="hidden" onChange={handleFileUpload} />
               </label>
             </div>
@@ -117,23 +153,23 @@ export default function Gallery() {
                           {project.name}
                         </h3>
                         <p className="text-xs text-slate-500 mt-1">
-                          Edited {new Date(project.updatedAt).toLocaleDateString()}
+                          {t('gallery.edited')} {new Date(project.updatedAt).toLocaleDateString()}
                         </p>
                       </a>
 
                       {/* Actions */}
                       <div className="flex items-center space-x-1">
                         <button
-                          onClick={() => handleRename(project)}
+                          onClick={() => startRename(project)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          title="Rename"
+                          title={t('gallery.rename')}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(project.id!)}
+                          onClick={() => confirmDelete(project.id!)}
                           className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                          title="Delete"
+                          title={t('gallery.delete')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -148,14 +184,62 @@ export default function Gallery() {
                 <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-slate-400 group-hover:text-blue-500">
                   <Plus className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Create New Project</h3>
-                <p className="text-xs text-slate-500 mt-1 text-center max-w-[150px]">Import SVG or start from scratch</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('gallery.create_new')}</h3>
+                <p className="text-xs text-slate-500 mt-1 text-center max-w-[150px]">{t('gallery.upload_prompt')}</p>
                 <input type="file" accept=".svg" className="hidden" onChange={handleFileUpload} />
               </label>
             </div>
           )}
         </div>
       </main>
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title={t('alert.confirm_delete_title')}
+        footer={
+          <>
+            <button onClick={() => setDeleteModalOpen(false)} className="px-4 py-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300 text-sm font-medium">
+              {t('alert.cancel')}
+            </button>
+            <button onClick={handleDelete} className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium">
+              {t('gallery.delete')}
+            </button>
+          </>
+        }
+      >
+        <p>{t('alert.delete_confirm')}</p>
+      </Modal>
+
+      {/* Rename Modal */}
+      <Modal
+        isOpen={renameModalOpen}
+        onClose={() => setRenameModalOpen(false)}
+        title={t('alert.rename_title')}
+        footer={
+          <>
+            <button onClick={() => setRenameModalOpen(false)} className="px-4 py-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-slate-300 text-sm font-medium">
+              {t('alert.cancel')}
+            </button>
+            <button onClick={handleRename} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+              {t('alert.confirm')}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+            <p>{t('alert.rename_prompt')}</p>
+            <input
+                type="text"
+                value={newProjectName}
+                onChange={e => setNewProjectName(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleRename(); }}
+            />
+        </div>
+      </Modal>
     </div>
   );
 }

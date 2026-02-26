@@ -15,5 +15,5 @@ const { lang } = Astro.params;
 	description="Manage your local logo projects."
 	lang={lang}
 >
-	<Gallery client:only="react" />
+	<Gallery client:only="react" lang={lang} />
 </StudioLayout>
