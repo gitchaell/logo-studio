@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Grid, PenTool, Plus } from 'lucide-react';
+import { ArrowLeft, Grid, PenTool, Plus } from 'lucide-react';
 import React from 'react';
 import { LanguageSelector } from './ui/LanguageSelector';
 import { ThemeToggle } from './ui/ThemeToggle';
@@ -60,14 +60,19 @@ export default function Sidebar({ lang }: SidebarProps) {
       minWidth={200}
       maxWidth={320}
       storageKey="main-sidebar"
-      className="z-20 !h-auto md:!h-full !w-full md:!w-auto bg-white dark:bg-zinc-900 border-b md:border-b-0"
+      className="z-20 h-auto md:h-full w-full bg-white dark:bg-zinc-900 border-b md:border-b-0"
     >
        {/* Header */}
-       <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center space-x-3 shrink-0">
-         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
-           <PenTool className="w-5 h-5" />
+       <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center shrink-0">
+         <a href={`/${lang}`} className="mr-2 p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title={t('sidebar.back_to_overview')}>
+            <ArrowLeft className="w-5 h-5" />
+         </a>
+         <div className="flex items-center space-x-3 overflow-hidden">
+             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
+               <PenTool className="w-5 h-5" />
+             </div>
+             <h1 className="font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">Logo Studio</h1>
          </div>
-         <h1 className="font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">Logo Studio</h1>
        </div>
 
        {/* Project List */}

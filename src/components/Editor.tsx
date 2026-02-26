@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeft, Download, Eye, Layout, Minus, Plus, RefreshCw, Save, Upload } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Eye, Layout, Minus, Plus, RefreshCw, Save, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -29,6 +29,17 @@ export default function Editor({ lang }: EditorProps) {
   const [showGuide, setShowGuide] = useState(true);
   const [selectedSizes, setSelectedSizes] = useState<number[]>([16, 32, 64, 128, 192, 512, 1024]);
   const [initialized, setInitialized] = useState(false);
+
+  // Resize State
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
+  const [initialScale, setInitialScale] = useState(1);
+  const [activeHandle, setActiveHandle] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<string[]>(['style', 'colors']);
+
+  const toggleSection = (section: string) => {
+    setOpenSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]);
+  };
 
   const t = (key: string) => {
     // @ts-ignore
@@ -120,6 +131,54 @@ export default function Editor({ lang }: EditorProps) {
       if (project && id) {
           db.projects.update(id, { logoX: position.x, logoY: position.y });
       }
+  };
+
+  // Resize Handlers
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+        if (!isResizing) return;
+
+        const deltaX = e.clientX - resizeStart.x;
+        const deltaY = e.clientY - resizeStart.y;
+
+        let delta = 0;
+
+        switch (activeHandle) {
+            case 'br': delta = Math.max(deltaX, deltaY); break;
+            case 'bl': delta = Math.max(-deltaX, deltaY); break;
+            case 'tr': delta = Math.max(deltaX, -deltaY); break;
+            case 'tl': delta = Math.max(-deltaX, -deltaY); break;
+        }
+
+        const sensitivity = 0.005;
+        const newScale = Math.max(0.1, Math.min(5, initialScale + delta * sensitivity));
+
+        setScale(newScale);
+    };
+
+    const handleWindowMouseUp = () => {
+        if (isResizing) {
+            setIsResizing(false);
+            setActiveHandle(null);
+        }
+    };
+
+    if (isResizing) {
+        window.addEventListener('mousemove', handleWindowMouseMove);
+        window.addEventListener('mouseup', handleWindowMouseUp);
+    }
+    return () => {
+        window.removeEventListener('mousemove', handleWindowMouseMove);
+        window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [isResizing, resizeStart, initialScale, activeHandle]);
+
+  const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setActiveHandle(handle);
+    setResizeStart({ x: e.clientX, y: e.clientY });
+    setInitialScale(scale);
   };
 
   const handleColorChange = (original: string, newColor: string) => {
@@ -292,23 +351,25 @@ export default function Editor({ lang }: EditorProps) {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
-         {/* Top Bar for Mode Switching */}
-         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-zinc-200 dark:border-zinc-800 rounded-full p-1 shadow-sm flex items-center">
-            <button
-                onClick={() => setActiveTab('edit')}
-                className={`flex items-center px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'edit' ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'}`}
-            >
-                <Layout className="w-4 h-4 mr-2" />
-                Edit
-            </button>
-            <button
-                onClick={() => setActiveTab('preview')}
-                className={`flex items-center px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeTab === 'preview' ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300'}`}
-            >
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
-            </button>
-         </div>
+         {/* Header */}
+         <header className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-center shrink-0 z-20">
+             <div className="flex items-center bg-zinc-100 dark:bg-zinc-800/50 p-1 rounded-lg">
+                <button
+                    onClick={() => setActiveTab('edit')}
+                    className={`flex items-center px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'edit' ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Layout className="w-4 h-4 mr-2" />
+                    Edit
+                </button>
+                <button
+                    onClick={() => setActiveTab('preview')}
+                    className={`flex items-center px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'preview' ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Preview
+                </button>
+             </div>
+         </header>
 
          {/* Edit Mode Canvas */}
          <div className={`flex-1 relative bg-zinc-50 dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] overflow-hidden cursor-move ${activeTab === 'edit' ? 'block' : 'hidden'}`}
@@ -321,7 +382,7 @@ export default function Editor({ lang }: EditorProps) {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {/* Canvas Background & Logo */}
                 <div
-                   className="absolute w-[512px] h-[512px] overflow-hidden shadow-2xl"
+                   className="absolute w-[512px] h-[512px] overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-sm"
                    style={{
                        backgroundColor: project.backgroundColor || 'transparent',
                        borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
@@ -337,6 +398,37 @@ export default function Editor({ lang }: EditorProps) {
                      >
                           <div className="w-[512px] h-[512px]" dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
                      </div>
+                </div>
+
+                {/* Selection Overlay */}
+                <div
+                    className="absolute"
+                    style={{
+                        width: 512 * scale,
+                        height: 512 * scale,
+                        transform: `translate(${position.x}px, ${position.y}px)`,
+                    }}
+                >
+                    {/* Outline */}
+                    <div className="absolute inset-0 border border-blue-500 pointer-events-none opacity-50"></div>
+
+                    {/* Handles */}
+                    <div
+                        className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                        onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
+                    />
+                    <div
+                        className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                        onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
+                    />
+                    <div
+                        className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                        onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
+                    />
+                    <div
+                        className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                        onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
+                    />
                 </div>
 
                 {/* Guides Overlay */}
@@ -406,12 +498,14 @@ export default function Editor({ lang }: EditorProps) {
                 orientation={project.orientation}
                 selectedSizes={selectedSizes}
                 onToggleSize={(size) => setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size])}
+                scale={scale}
+                position={position}
              />
          </div>
       </main>
 
       {/* Right Sidebar - Configuration */}
-      <ResizablePanel side="right" defaultWidth={320} minWidth={280} maxWidth={400} storageKey="editor-sidebar" className="z-10 !h-1/2 md:!h-full !w-full md:!w-auto border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+      <ResizablePanel side="right" defaultWidth={320} minWidth={280} maxWidth={400} storageKey="editor-sidebar" className="z-10 h-1/2 md:h-full w-full border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="flex flex-col h-full overflow-hidden">
             <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                 <div className="space-y-4">
@@ -427,184 +521,217 @@ export default function Editor({ lang }: EditorProps) {
                 </div>
             </div>
 
-            <div className="p-6 flex-1 space-y-8 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
              {/* Logo Style */}
-             <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Logo Style</h3>
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-xs font-medium text-slate-500 mb-2 block">Background Color</label>
-                        <div className="flex items-center space-x-2">
-                             <div className="w-8 h-8 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
-                                <input
-                                    type="color"
-                                    value={project.backgroundColor || '#ffffff'}
-                                    onChange={(e) => db.projects.update(project.id!, { backgroundColor: e.target.value })}
-                                    className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
-                                />
-                             </div>
-                             <button
-                                onClick={() => db.projects.update(project.id!, { backgroundColor: undefined })}
-                                className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 underline"
-                             >
-                                Clear
-                             </button>
+             <div className="border-b border-zinc-200 dark:border-zinc-800">
+                <button
+                    onClick={() => toggleSection('style')}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Logo Style</h3>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${openSections.includes('style') ? 'rotate-180' : ''}`} />
+                </button>
+                {openSections.includes('style') && (
+                    <div className="p-4 pt-0 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 mb-2 block">Background Color</label>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-8 h-8 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                    <input
+                                        type="color"
+                                        value={project.backgroundColor || '#ffffff'}
+                                        onChange={(e) => db.projects.update(project.id!, { backgroundColor: e.target.value })}
+                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => db.projects.update(project.id!, { backgroundColor: undefined })}
+                                    className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 underline"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-xs font-medium text-slate-500">Border Radius</label>
+                                <span className="text-xs font-mono text-slate-400">{project.borderRadius || 0}px</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="256"
+                                value={project.borderRadius || 0}
+                                onChange={(e) => db.projects.update(project.id!, { borderRadius: Number(e.target.value) })}
+                                className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer dark:bg-zinc-700 accent-blue-600"
+                            />
                         </div>
                     </div>
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                             <label className="text-xs font-medium text-slate-500">Border Radius</label>
-                             <span className="text-xs font-mono text-slate-400">{project.borderRadius || 0}px</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="256"
-                            value={project.borderRadius || 0}
-                            onChange={(e) => db.projects.update(project.id!, { borderRadius: Number(e.target.value) })}
-                            className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer dark:bg-zinc-700 accent-blue-600"
-                        />
-                    </div>
-                </div>
+                )}
              </div>
 
              {/* PWA / Manifest Settings */}
-             <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">PWA & Manifest</h3>
-                <div className="space-y-4">
-                     <div>
-                        <label className="text-xs font-medium text-slate-500 mb-1 block">Short Name</label>
-                        <input
-                            type="text"
-                            value={project.shortName || ''}
-                            onChange={(e) => db.projects.update(project.id!, { shortName: e.target.value })}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                            placeholder="App"
-                        />
-                     </div>
-                     <div>
-                        <label className="text-xs font-medium text-slate-500 mb-1 block">Description</label>
-                        <textarea
-                            value={project.description || ''}
-                            onChange={(e) => db.projects.update(project.id!, { description: e.target.value })}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none resize-none"
-                            rows={2}
-                            placeholder="My awesome app..."
-                        />
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
+             <div className="border-b border-zinc-200 dark:border-zinc-800">
+                <button
+                    onClick={() => toggleSection('pwa')}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">PWA & Manifest</h3>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${openSections.includes('pwa') ? 'rotate-180' : ''}`} />
+                </button>
+                {openSections.includes('pwa') && (
+                    <div className="p-4 pt-0 space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
                         <div>
-                             <label className="text-xs font-medium text-slate-500 mb-1 block">Theme Color</label>
-                             <div className="flex items-center space-x-2">
-                                <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
-                                    <input
-                                        type="color"
-                                        value={project.themeColor || '#ffffff'}
-                                        onChange={(e) => db.projects.update(project.id!, { themeColor: e.target.value })}
-                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
-                                    />
-                                </div>
-                                <span className="text-[10px] font-mono text-slate-400">{project.themeColor}</span>
-                             </div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Short Name</label>
+                            <input
+                                type="text"
+                                value={project.shortName || ''}
+                                onChange={(e) => db.projects.update(project.id!, { shortName: e.target.value })}
+                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                placeholder="App"
+                            />
                         </div>
                         <div>
-                             <label className="text-xs font-medium text-slate-500 mb-1 block">App Bg Color</label>
-                             <div className="flex items-center space-x-2">
-                                <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
-                                    <input
-                                        type="color"
-                                        value={project.appBackgroundColor || '#ffffff'}
-                                        onChange={(e) => db.projects.update(project.id!, { appBackgroundColor: e.target.value })}
-                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
-                                    />
-                                </div>
-                                <span className="text-[10px] font-mono text-slate-400">{project.appBackgroundColor}</span>
-                             </div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Description</label>
+                            <textarea
+                                value={project.description || ''}
+                                onChange={(e) => db.projects.update(project.id!, { description: e.target.value })}
+                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none resize-none"
+                                rows={2}
+                                placeholder="My awesome app..."
+                            />
                         </div>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                         <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">Display</label>
-                            <select
-                                value={project.displayMode || 'standalone'}
-                                onChange={(e) => db.projects.update(project.id!, { displayMode: e.target.value as any })}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 mb-1 block">Theme Color</label>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                        <input
+                                            type="color"
+                                            value={project.themeColor || '#ffffff'}
+                                            onChange={(e) => db.projects.update(project.id!, { themeColor: e.target.value })}
+                                            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                        />
+                                    </div>
+                                    <span className="text-[10px] font-mono text-slate-400">{project.themeColor}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 mb-1 block">App Bg Color</label>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden relative">
+                                        <input
+                                            type="color"
+                                            value={project.appBackgroundColor || '#ffffff'}
+                                            onChange={(e) => db.projects.update(project.id!, { appBackgroundColor: e.target.value })}
+                                            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                        />
+                                    </div>
+                                    <span className="text-[10px] font-mono text-slate-400">{project.appBackgroundColor}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 mb-1 block">Display</label>
+                                <select
+                                    value={project.displayMode || 'standalone'}
+                                    onChange={(e) => db.projects.update(project.id!, { displayMode: e.target.value as any })}
+                                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="standalone">Standalone</option>
+                                    <option value="fullscreen">Fullscreen</option>
+                                    <option value="minimal-ui">Minimal UI</option>
+                                    <option value="browser">Browser</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-medium text-slate-500 mb-1 block">Orientation</label>
+                                <select
+                                    value={project.orientation || 'any'}
+                                    onChange={(e) => db.projects.update(project.id!, { orientation: e.target.value as any })}
+                                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="any">Any</option>
+                                    <option value="natural">Natural</option>
+                                    <option value="portrait">Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">Start URL</label>
+                            <input
+                                type="text"
+                                value={project.startUrl || '/'}
+                                onChange={(e) => db.projects.update(project.id!, { startUrl: e.target.value })}
                                 className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                            >
-                                <option value="standalone">Standalone</option>
-                                <option value="fullscreen">Fullscreen</option>
-                                <option value="minimal-ui">Minimal UI</option>
-                                <option value="browser">Browser</option>
-                            </select>
-                         </div>
-                         <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">Orientation</label>
-                            <select
-                                value={project.orientation || 'any'}
-                                onChange={(e) => db.projects.update(project.id!, { orientation: e.target.value as any })}
-                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                            >
-                                <option value="any">Any</option>
-                                <option value="natural">Natural</option>
-                                <option value="portrait">Portrait</option>
-                                <option value="landscape">Landscape</option>
-                            </select>
-                         </div>
-                     </div>
-                     <div>
-                        <label className="text-xs font-medium text-slate-500 mb-1 block">Start URL</label>
-                        <input
-                            type="text"
-                            value={project.startUrl || '/'}
-                            onChange={(e) => db.projects.update(project.id!, { startUrl: e.target.value })}
-                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                        />
-                     </div>
-                </div>
+                            />
+                        </div>
+                    </div>
+                )}
              </div>
+
             {/* Colors */}
-            <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">{t('editor.recolor')}</h3>
-                <div className="space-y-3">
-                    {uniqueColors.map((color, idx) => (
-                        <div key={idx} className="flex items-center justify-between group">
-                            <div className="flex items-center space-x-2">
-                                <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm" style={{ backgroundColor: color }}></div>
-                                <span className="text-xs font-mono text-slate-500">{color}</span>
-                            </div>
-                            <ArrowLeft className="w-3 h-3 text-slate-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="flex items-center space-x-2 relative">
-                                <div className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer relative">
-                                    <input
-                                        type="color"
-                                        value={colors[color] || color}
-                                        onChange={(e) => handleColorChange(color, e.target.value)}
-                                        className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
-                                    />
+            <div className="border-b border-zinc-200 dark:border-zinc-800">
+                <button
+                    onClick={() => toggleSection('colors')}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('editor.recolor')}</h3>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${openSections.includes('colors') ? 'rotate-180' : ''}`} />
+                </button>
+                {openSections.includes('colors') && (
+                    <div className="p-4 pt-0 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                        {uniqueColors.map((color, idx) => (
+                            <div key={idx} className="flex items-center justify-between group">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 rounded border border-zinc-200 dark:border-zinc-700 shadow-sm" style={{ backgroundColor: color }}></div>
+                                    <span className="text-xs font-mono text-slate-500">{color}</span>
+                                </div>
+                                <ArrowLeft className="w-3 h-3 text-slate-400 rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex items-center space-x-2 relative">
+                                    <div className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer relative">
+                                        <input
+                                            type="color"
+                                            value={colors[color] || color}
+                                            onChange={(e) => handleColorChange(color, e.target.value)}
+                                            className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 m-0 border-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                    {uniqueColors.length === 0 && <p className="text-xs text-slate-400">No editable colors found.</p>}
-                </div>
+                        ))}
+                        {uniqueColors.length === 0 && <p className="text-xs text-slate-400">No editable colors found.</p>}
+                    </div>
+                )}
             </div>
 
             {/* Actions */}
-            <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">{t('editor.actions')}</h3>
-                <div className="space-y-3">
-                    <button
-                        onClick={handleSave}
-                        className="w-full flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
-                    >
-                        <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.save')}</span>
-                        <Save className="w-4 h-4 text-slate-500" />
-                    </button>
-                    <label className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
-                        <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.replace_svg')}</span>
-                        <Upload className="w-4 h-4 text-slate-500" />
-                        <input type="file" accept=".svg" className="hidden" onChange={handleLogoUpload} />
-                    </label>
-                </div>
+            <div className="border-b border-zinc-200 dark:border-zinc-800">
+                <button
+                    onClick={() => toggleSection('actions')}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                >
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t('editor.actions')}</h3>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${openSections.includes('actions') ? 'rotate-180' : ''}`} />
+                </button>
+                {openSections.includes('actions') && (
+                    <div className="p-4 pt-0 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <button
+                            onClick={handleSave}
+                            className="w-full flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+                        >
+                            <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.save')}</span>
+                            <Save className="w-4 h-4 text-slate-500" />
+                        </button>
+                        <label className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700">
+                            <span className="text-sm text-slate-700 dark:text-slate-200">{t('editor.replace_svg')}</span>
+                            <Upload className="w-4 h-4 text-slate-500" />
+                            <input type="file" accept=".svg" className="hidden" onChange={handleLogoUpload} />
+                        </label>
+                    </div>
+                )}
             </div>
             </div>
 

@@ -5,10 +5,22 @@ interface BrowserTabPreviewProps {
   svgContent: string;
   projectName: string;
   theme?: 'light' | 'dark';
+  scale?: number;
+  position?: { x: number; y: number };
 }
 
-export function BrowserTabPreview({ svgContent, projectName, theme = 'light' }: BrowserTabPreviewProps) {
+export function BrowserTabPreview({ svgContent, projectName, theme = 'light', scale = 1, position = { x: 0, y: 0 } }: BrowserTabPreviewProps) {
   const isDark = theme === 'dark';
+
+  const logoTransformStyle = {
+      transform: `translate(${(position.x / 512) * 100}%, ${(position.y / 512) * 100}%) scale(${scale})`,
+      transformOrigin: 'center',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+  };
 
   return (
     <div className={`rounded-lg overflow-hidden border ${isDark ? 'bg-zinc-900 border-zinc-700' : 'bg-gray-100 border-gray-200'} shadow-sm`}>
@@ -27,7 +39,9 @@ export function BrowserTabPreview({ svgContent, projectName, theme = 'light' }: 
 
           {/* Favicon */}
           <div className="w-4 h-4 shrink-0 overflow-hidden flex items-center justify-center">
-             <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+             <div style={logoTransformStyle}>
+                 <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+             </div>
           </div>
 
           <span className="truncate flex-1 font-medium">{projectName || 'New Project'}</span>

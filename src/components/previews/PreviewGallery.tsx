@@ -14,6 +14,8 @@ interface PreviewGalleryProps {
   orientation?: 'any' | 'natural' | 'landscape' | 'portrait';
   selectedSizes?: number[];
   onToggleSize?: (size: number) => void;
+  scale?: number;
+  position?: { x: number; y: number };
 }
 
 const AVAILABLE_SIZES = [16, 32, 64, 128, 192, 512, 1024];
@@ -27,9 +29,23 @@ export function PreviewGallery({
     displayMode = 'standalone',
     orientation = 'any',
     selectedSizes = [],
-    onToggleSize
+    onToggleSize,
+    scale = 1,
+    position = { x: 0, y: 0 }
 }: PreviewGalleryProps) {
   const [activeTab, setActiveTab] = useState<'web' | 'mobile' | 'social' | 'manifest' | 'exports'>('web');
+  const [customSizes, setCustomSizes] = useState<number[]>([]);
+  const [newSizeInput, setNewSizeInput] = useState('');
+
+  const logoTransformStyle = {
+      transform: `translate(${(position.x / 512) * 100}%, ${(position.y / 512) * 100}%) scale(${scale})`,
+      transformOrigin: 'center',
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+  };
 
   const t = (key: string) => {
     // @ts-ignore
@@ -83,8 +99,8 @@ export function PreviewGallery({
                                 <Globe className="w-4 h-4 mr-2" /> {t('preview.browser_tab')}
                             </h3>
                             <div className="space-y-6">
-                                <BrowserTabPreview svgContent={svgContent} projectName={projectName} theme="light" />
-                                <BrowserTabPreview svgContent={svgContent} projectName={projectName} theme="dark" />
+                                <BrowserTabPreview svgContent={svgContent} projectName={projectName} theme="light" scale={scale} position={position} />
+                                <BrowserTabPreview svgContent={svgContent} projectName={projectName} theme="dark" scale={scale} position={position} />
                             </div>
                         </div>
                     </div>
@@ -112,7 +128,9 @@ export function PreviewGallery({
                                             borderRadius: borderRadius ? `${borderRadius * (64/512)}px` : '14px'
                                         }}
                                     >
-                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                        <div style={logoTransformStyle}>
+                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                        </div>
                                     </div>
                                     <span className="text-[11px] font-medium text-slate-800 text-center drop-shadow-sm truncate w-20">{projectName || 'App'}</span>
                                     <div className="mt-8 grid grid-cols-4 gap-4 w-full px-2 opacity-30 pointer-events-none grayscale">
@@ -145,7 +163,9 @@ export function PreviewGallery({
                                             borderRadius: borderRadius ? `${borderRadius * (56/512)}px` : '50%'
                                         }}
                                     >
-                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                        <div style={logoTransformStyle}>
+                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                        </div>
                                     </div>
                                     <span className="text-[11px] font-medium text-white/90 text-center drop-shadow-md truncate w-20">{projectName || 'App'}</span>
                                     <div className="mt-12 grid grid-cols-4 gap-6 w-full px-2 opacity-40 pointer-events-none">
@@ -174,7 +194,9 @@ export function PreviewGallery({
                                         borderRadius: borderRadius ? `${borderRadius * (128/512)}px` : '0'
                                     }}
                                   >
-                                    <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    <div style={logoTransformStyle}>
+                                        <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                    </div>
                                   </div>
                              </div>
                              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-700">
@@ -199,27 +221,52 @@ export function PreviewGallery({
 
                 {activeTab === 'exports' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Export Selection</h3>
-                            <div className="text-sm text-slate-500">
-                                {selectedSizes.length} files selected
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="number"
+                                    placeholder="Size (px)"
+                                    value={newSizeInput}
+                                    onChange={(e) => setNewSizeInput(e.target.value)}
+                                    className="w-24 px-3 py-1.5 text-sm border border-zinc-200 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <button
+                                    onClick={() => {
+                                        const size = parseInt(newSizeInput);
+                                        if (size > 0 && !AVAILABLE_SIZES.includes(size) && !customSizes.includes(size)) {
+                                            setCustomSizes(prev => [...prev, size].sort((a,b) => a-b));
+                                            onToggleSize?.(size);
+                                            setNewSizeInput('');
+                                        }
+                                    }}
+                                    disabled={!newSizeInput}
+                                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Add Size
+                                </button>
+                                <div className="text-sm text-slate-500 ml-2">
+                                    {selectedSizes.length} selected
+                                </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            {AVAILABLE_SIZES.map(size => {
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 items-end">
+                            {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => a - b).map(size => {
                                 const isSelected = selectedSizes.includes(size);
+                                const previewSize = Math.min(160, Math.max(48, size));
+
                                 return (
                                     <div
                                         key={size}
                                         onClick={() => onToggleSize?.(size)}
-                                        className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center space-y-3 transition-all ${
+                                        className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 transition-all h-[240px] ${
                                             isSelected
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                             : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
                                         }`}
                                     >
-                                        <div className="absolute top-3 right-3">
+                                        <div className="absolute top-3 right-3 z-10">
                                             <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                                                 isSelected
                                                 ? 'bg-blue-500 border-blue-500'
@@ -229,17 +276,23 @@ export function PreviewGallery({
                                             </div>
                                         </div>
 
-                                        <div
-                                            className="w-16 h-16 flex items-center justify-center overflow-hidden shadow-sm bg-white dark:bg-black/20 rounded-lg"
-                                            style={{
-                                                backgroundColor: backgroundColor || 'transparent',
-                                                borderRadius: borderRadius ? `${borderRadius * (64/512)}px` : '0'
-                                            }}
-                                        >
-                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                        <div className="flex-1 flex items-center justify-center w-full">
+                                            <div
+                                                className="flex items-center justify-center overflow-hidden shadow-sm bg-white dark:bg-black/20 rounded-lg transition-all"
+                                                style={{
+                                                    width: previewSize,
+                                                    height: previewSize,
+                                                    backgroundColor: backgroundColor || 'transparent',
+                                                    borderRadius: borderRadius ? `${borderRadius * (previewSize/512)}px` : '0'
+                                                }}
+                                            >
+                                                <div style={logoTransformStyle}>
+                                                    <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div className="text-center">
+                                        <div className="text-center shrink-0">
                                             <span className="block text-sm font-semibold text-slate-900 dark:text-white">{size}x{size}</span>
                                             <span className="text-xs text-slate-500">PNG</span>
                                         </div>
