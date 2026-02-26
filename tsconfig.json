@@ -13,6 +13,7 @@
 		"paths": {
 			"@/components/*": ["src/components/*"],
 			"@/layouts/*": ["src/layouts/*"],
+			"@/lib/*": ["src/lib/*"],
 			"@/pages/*": ["src/pages/*"],
 			"@/styles/*": ["src/styles/*"],
 			"@/i18n/*": ["src/i18n/*"]

@@ -1,5 +1,6 @@
 // @ts-check
 
+import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import AstroPWA from "@vite-pwa/astro";
@@ -9,6 +10,7 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
 	site: "https://astrotmp.vercel.app",
 	integrations: [
+		react(),
 		sitemap({
 			i18n: {
 				defaultLocale: "en",

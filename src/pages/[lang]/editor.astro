@@ -1,5 +1,5 @@
 ---
-import Gallery from "@/components/logo-studio/Gallery";
+import EditorComponent from "@/components/logo-studio/Editor";
 import { languages } from "@/i18n/ui";
 import StudioLayout from "@/layouts/StudioLayout.astro";
 
@@ -11,9 +11,9 @@ const { lang } = Astro.params;
 ---
 
 <StudioLayout
-	title="Logo Studio Gallery"
-	description="Manage your local logo projects."
+	title="Logo Studio Editor"
+	description="Edit and export your logo."
 	lang={lang}
 >
-	<Gallery client:only="react" />
+	<EditorComponent client:only="react" />
 </StudioLayout>
