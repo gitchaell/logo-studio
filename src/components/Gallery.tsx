@@ -138,7 +138,7 @@ export default function Gallery({ lang }: GalleryProps) {
               {filteredProjects?.map((project) => (
                 <div key={project.id} className="group relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
                   {/* Preview Area */}
-                  <a href={`editor?id=${project.id}`} className="aspect-video bg-zinc-50 dark:bg-black/40 flex items-center justify-center p-8 border-b border-zinc-200 dark:border-zinc-800 group-hover:bg-zinc-100 dark:group-hover:bg-black/60 transition-colors cursor-pointer relative overflow-hidden">
+                  <a href={`/${lang}/editor?id=${project.id}`} className="aspect-video bg-zinc-50 dark:bg-black/40 flex items-center justify-center p-8 border-b border-zinc-200 dark:border-zinc-800 group-hover:bg-zinc-100 dark:group-hover:bg-black/60 transition-colors cursor-pointer relative overflow-hidden">
                     <div
                       className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
                       dangerouslySetInnerHTML={{ __html: project.svgContent }}
@@ -148,12 +148,12 @@ export default function Gallery({ lang }: GalleryProps) {
                   {/* Details */}
                   <div className="p-4">
                     <div className="flex items-start justify-between">
-                      <a href={`editor?id=${project.id}`} className="flex-1 min-w-0 cursor-pointer">
+                      <a href={`/${lang}/editor?id=${project.id}`} className="flex-1 min-w-0 cursor-pointer">
                         <h3 className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                           {project.name}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {t('gallery.edited')} {new Date(project.updatedAt).toLocaleDateString()}
+                        <p className="text-xs text-slate-500 mt-1 font-mono">
+                          {t('gallery.edited')} {new Intl.DateTimeFormat(lang, { dateStyle: 'medium' }).format(new Date(project.updatedAt))}
                         </p>
                       </a>
 
