@@ -6,6 +6,7 @@ import { LanguageSelector } from '../ui/LanguageSelector';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { ui, defaultLang } from '@/i18n/ui';
 import { useToast } from '../ui/Toast';
+import { ResizablePanel } from '../ui/ResizablePanel';
 
 interface SidebarProps {
   lang: string;
@@ -15,7 +16,6 @@ export default function Sidebar({ lang }: SidebarProps) {
   const projects = useLiveQuery(() => db.projects.toArray());
   const { addToast } = useToast();
 
-  // Using a simpler translation helper here since hooks cannot be conditional
   const t = (key: string) => {
     // @ts-ignore
     return ui[lang]?.[key] || ui[defaultLang]?.[key] || key;
@@ -54,20 +54,27 @@ export default function Sidebar({ lang }: SidebarProps) {
   const currentId = searchParams.get('id');
 
   return (
-    <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-white dark:bg-zinc-900 h-full shrink-0 z-20 transition-all">
+    <ResizablePanel
+      side="left"
+      defaultWidth={256}
+      minWidth={200}
+      maxWidth={320}
+      storageKey="main-sidebar"
+      className="z-20 h-full bg-white dark:bg-zinc-900"
+    >
        {/* Header */}
        <div className="h-16 px-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center space-x-3 shrink-0">
-         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
            <PenTool className="w-5 h-5" />
          </div>
-         <h1 className="font-bold text-lg tracking-tight">Logo Studio</h1>
+         <h1 className="font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden">Logo Studio</h1>
        </div>
 
        {/* Project List */}
        <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div>
             <div className="flex items-center justify-between px-2 mb-2">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sidebar.library')}</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('sidebar.library')}</h3>
                 <label className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title={t('sidebar.new_project')}>
                     <Plus className="w-4 h-4" />
                     <input type="file" accept=".svg" className="hidden" onChange={handleFileUpload} />
@@ -76,8 +83,8 @@ export default function Sidebar({ lang }: SidebarProps) {
 
             <nav className="space-y-1">
                 <a href={`/${lang}/`} className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${currentPath === `/${lang}/` || currentPath === `/${lang}` ? 'bg-zinc-100 dark:bg-zinc-800 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-slate-900 dark:hover:text-white'}`}>
-                    <Grid className="w-4 h-4 mr-3" />
-                    <span>{t('sidebar.my_projects')}</span>
+                    <Grid className="w-4 h-4 mr-3 shrink-0" />
+                    <span className="whitespace-nowrap">{t('sidebar.my_projects')}</span>
                 </a>
             </nav>
 
@@ -100,10 +107,10 @@ export default function Sidebar({ lang }: SidebarProps) {
        </div>
 
        {/* Footer */}
-       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2 overflow-hidden">
           <ThemeToggle />
           <LanguageSelector currentLang={lang} />
        </div>
-    </aside>
+    </ResizablePanel>
   );
 }

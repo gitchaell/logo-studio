@@ -63,7 +63,7 @@ export default function Gallery({ lang }: GalleryProps) {
   const handleDelete = async () => {
     if (projectToDelete) {
       await db.projects.delete(projectToDelete);
-      addToast('Project deleted', 'success');
+      addToast(t('success.project_deleted'), 'success');
       setDeleteModalOpen(false);
       setProjectToDelete(null);
     }
@@ -78,7 +78,7 @@ export default function Gallery({ lang }: GalleryProps) {
   const handleRename = async () => {
     if (projectToRename && newProjectName && newProjectName !== projectToRename.name) {
       await db.projects.update(projectToRename.id!, { name: newProjectName, updatedAt: new Date() });
-      addToast('Project renamed', 'success');
+      addToast(t('success.project_renamed'), 'success');
     }
     setRenameModalOpen(false);
     setProjectToRename(null);

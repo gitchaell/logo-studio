@@ -37,6 +37,16 @@ export const ui = {
 		"gallery.delete": "Delete",
 		"gallery.edited": "Edited",
 
+		"preview.browser_tab": "Browser Favicon Preview",
+		"preview.mobile_icon": "Mobile App Icon Preview",
+		"preview.light_mode": "Light Mode",
+		"preview.dark_mode": "Dark Mode",
+		"preview.ios_home": "iOS Home",
+		"preview.android_home": "Android Home",
+
+		"success.project_deleted": "Project deleted",
+		"success.project_renamed": "Project renamed",
+
 		"alert.upload_svg": "Please upload an SVG file.",
 		"alert.save_error": "Failed to save project.",
 		"alert.delete_confirm": "Are you sure you want to delete this project?",
@@ -73,6 +83,16 @@ export const ui = {
 		"gallery.rename": "Renombrar",
 		"gallery.delete": "Eliminar",
 		"gallery.edited": "Editado",
+
+		"preview.browser_tab": "Vista Previa de Favicon",
+		"preview.mobile_icon": "Vista Previa de Icono Móvil",
+		"preview.light_mode": "Modo Claro",
+		"preview.dark_mode": "Modo Oscuro",
+		"preview.ios_home": "Inicio iOS",
+		"preview.android_home": "Inicio Android",
+
+		"success.project_deleted": "Proyecto eliminado",
+		"success.project_renamed": "Proyecto renombrado",
 
 		"alert.upload_svg": "Por favor, sube un archivo SVG.",
 		"alert.save_error": "Error al guardar el proyecto.",
@@ -111,6 +131,16 @@ export const ui = {
 		"gallery.delete": "Löschen",
 		"gallery.edited": "Bearbeitet",
 
+		"preview.browser_tab": "Browser-Favicon-Vorschau",
+		"preview.mobile_icon": "Vorschau des mobilen App-Symbols",
+		"preview.light_mode": "Heller Modus",
+		"preview.dark_mode": "Dunkler Modus",
+		"preview.ios_home": "iOS-Startbildschirm",
+		"preview.android_home": "Android-Startbildschirm",
+
+		"success.project_deleted": "Projekt gelöscht",
+		"success.project_renamed": "Projekt umbenannt",
+
 		"alert.upload_svg": "Bitte laden Sie eine SVG-Datei hoch.",
 		"alert.save_error": "Projekt konnte nicht gespeichert werden.",
 		"alert.delete_confirm": "Sind Sie sicher, dass Sie dieses Projekt löschen möchten?",
@@ -148,6 +178,16 @@ export const ui = {
 		"gallery.delete": "削除",
 		"gallery.edited": "編集済み",
 
+		"preview.browser_tab": "ブラウザのファビコンプレビュー",
+		"preview.mobile_icon": "モバイルアプリのアイコンプレビュー",
+		"preview.light_mode": "ライトモード",
+		"preview.dark_mode": "ダークモード",
+		"preview.ios_home": "iOSホーム",
+		"preview.android_home": "Androidホーム",
+
+		"success.project_deleted": "プロジェクトが削除されました",
+		"success.project_renamed": "プロジェクト名が変更されました",
+
 		"alert.upload_svg": "SVGファイルをアップロードしてください。",
 		"alert.save_error": "プロジェクトの保存に失敗しました。",
 		"alert.delete_confirm": "このプロジェクトを削除してもよろしいですか？",
@@ -184,6 +224,16 @@ export const ui = {
 		"gallery.rename": "이름 바꾸기",
 		"gallery.delete": "삭제",
 		"gallery.edited": "수정됨",
+
+		"preview.browser_tab": "브라우저 파비콘 미리보기",
+		"preview.mobile_icon": "모바일 앱 아이콘 미리보기",
+		"preview.light_mode": "라이트 모드",
+		"preview.dark_mode": "다크 모드",
+		"preview.ios_home": "iOS 홈",
+		"preview.android_home": "Android 홈",
+
+		"success.project_deleted": "프로젝트 삭제됨",
+		"success.project_renamed": "프로젝트 이름 변경됨",
 
 		"alert.upload_svg": "SVG 파일을 업로드해주세요.",
 		"alert.save_error": "프로젝트 저장 실패.",
