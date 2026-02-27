@@ -89,12 +89,13 @@ export const generateOpenGraph = async (project: any, svgContent: string) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to generate OG image via API: ${response.status} ${response.statusText}`);
+            console.warn(`Failed to generate OG image via API: ${response.status} ${response.statusText}`);
+            return svgContent;
         }
 
         return await response.text();
     } catch (e) {
-        console.error("Failed to generate OG image", e);
+        console.warn("Failed to generate OG image", e);
         return svgContent;
     }
 };

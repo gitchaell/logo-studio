@@ -125,12 +125,17 @@ export default function Editor({ lang }: EditorProps) {
              setScale(project.logoScale || 1);
              setPosition({ x: project.logoX || 0, y: project.logoY || 0 });
         }
+
+        if (project.borderRadius === undefined && id) {
+             db.projects.update(id, { borderRadius: 12 });
+        }
+
         if (project.colors) {
             setColors(project.colors);
         }
         setInitialized(true);
     }
-  }, [project, initialized]);
+  }, [project, initialized, id]);
 
   // Persist scale changes (debounced)
   useEffect(() => {
@@ -510,6 +515,23 @@ export default function Editor({ lang }: EditorProps) {
 
               const normalizedContent = normalizeSvg(content);
 
+              // Detect background color from SVG rects that act as background
+              let detectedBg: string | undefined = undefined;
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(normalizedContent, 'image/svg+xml');
+              const firstRect = doc.querySelector('rect');
+              if (firstRect) {
+                  const width = firstRect.getAttribute('width');
+                  const height = firstRect.getAttribute('height');
+                  // If it's a 100% or very large rect, it's likely a background
+                  if (width === '100%' && height === '100%' || (Number(width) >= 512 && Number(height) >= 512)) {
+                      detectedBg = firstRect.getAttribute('fill') || undefined;
+                      if (detectedBg === 'none' || detectedBg === 'transparent') {
+                          detectedBg = undefined;
+                      }
+                  }
+              }
+
               // Calculate auto-fit for the new logo
               const dims = getSvgDimensions(normalizedContent);
               const { scale: fitScale, x, y } = fitLogoToCanvas(dims.width, dims.height);
@@ -519,7 +541,9 @@ export default function Editor({ lang }: EditorProps) {
                   updatedAt: new Date(),
                   logoScale: fitScale,
                   logoX: x,
-                  logoY: y
+                  logoY: y,
+                  borderRadius: 12,
+                  ...(detectedBg ? { backgroundColor: detectedBg } : {})
               });
 
               setScale(fitScale);
@@ -675,7 +699,7 @@ export default function Editor({ lang }: EditorProps) {
                             width={logoDimensions.width}
                             height={logoDimensions.height}
                             viewBox={`0 0 ${logoDimensions.width} ${logoDimensions.height}`}
-                            className="stroke-zinc-400/50 dark:stroke-zinc-600/50"
+                            className="mix-blend-difference stroke-white/50"
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
                         >
