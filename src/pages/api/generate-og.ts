@@ -22,10 +22,10 @@ export const POST: APIRoute = async ({ request }) => {
     </div>
     `;
 
-    // Fetch font (Use TTF from Google Fonts to avoid WOFF2 issues in satori)
+    // Fetch font (Use TTF/WOFF to avoid WOFF2 issues in satori)
     let fontData;
     try {
-        const fontRes = await fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hjp-Ek-_EeA.ttf');
+        const fontRes = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff');
         if (!fontRes.ok) {
             throw new Error(`Failed to load font: ${fontRes.statusText}`);
         }
