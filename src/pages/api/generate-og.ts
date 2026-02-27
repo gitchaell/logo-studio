@@ -8,16 +8,27 @@ export const POST: APIRoute = async ({ request }) => {
   console.log('[API] generate-og called');
   try {
     const { project, svgContent } = await request.json();
-    const { backgroundColor } = project;
+    const { backgroundColor, name, description } = project;
+
+    // Ensure background color is valid or fallback to white
+    const bg = backgroundColor || '#ffffff';
+
+    // Prepare logo data URI
+    const logoDataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgContent)))}`;
 
     const markup = html`
-    <div style="display: flex; flex-direction: column; width: 100%; height: 100%; background-color: #f0f2f5; align-items: center; justify-content: center; font-family: 'Inter', sans-serif;">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: ${backgroundColor || 'white'}; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-             <div style="width: 256px; height: 256px; display: flex; align-items: center; justify-content: center;">
-                <img src="${'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgContent)))}" width="256" height="256" />
+    <div style="display: flex; width: 100%; height: 100%; background-color: ${bg}; align-items: center; justify-content: center; position: relative; font-family: 'Inter', sans-serif;">
+        <!-- Centered Logo Area -->
+        <div style="display: flex; align-items: center; justify-content: center; width: 80%; height: 50%;">
+             <img src="${logoDataUri}" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+
+        <!-- Bottom Floating Card for Project Info -->
+        <div style="display: flex; position: absolute; bottom: 40px; width: 90%; background-color: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 32px 40px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); align-items: center; justify-content: space-between;">
+             <div style="display: flex; flex-direction: column; width: 100%;">
+                 <h1 style="font-size: 48px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1;">${name}</h1>
+                 ${description ? `<p style="font-size: 24px; color: #475569; margin-top: 12px; margin-bottom: 0; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${description}</p>` : ''}
              </div>
-             <h1 style="font-size: 48px; font-weight: bold; color: #1e293b; margin-top: 24px; margin-bottom: 8px;">${project.name}</h1>
-             <p style="font-size: 24px; color: #64748b;">${project.description || 'Designed with Logo Studio'}</p>
         </div>
     </div>
     `;
@@ -25,14 +36,15 @@ export const POST: APIRoute = async ({ request }) => {
     // Fetch font (Use TTF/WOFF to avoid WOFF2 issues in satori)
     let fontData;
     try {
-        const fontRes = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff');
+        const fontRes = await fetch('https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-800-normal.woff');
         if (!fontRes.ok) {
             throw new Error(`Failed to load font: ${fontRes.statusText}`);
         }
         fontData = await fontRes.arrayBuffer();
     } catch (fontError) {
         console.error('Font loading failed:', fontError);
-        // Fallback or error re-throw
+        // Fallback or error re-throw if critical
+        // We can proceed without custom font if needed, but it looks bad.
         throw fontError;
     }
 
@@ -43,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
             {
                 name: 'Inter',
                 data: fontData,
-                weight: 700,
+                weight: 800,
                 style: 'normal',
             },
         ],
@@ -52,6 +64,8 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(svg, {
         headers: {
             'Content-Type': 'image/svg+xml',
+            // Add Cache-Control if desired
+            'Cache-Control': 'public, max-age=31536000, immutable',
         },
     });
   } catch (error) {
