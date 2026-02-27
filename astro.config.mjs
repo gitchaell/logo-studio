@@ -11,7 +11,7 @@ import vercel from "@astrojs/vercel";
 // https://astro.build/config
 export default defineConfig({
   output: "server",
-  site: "https://astrotmp.vercel.app",
+  site: "https://logostd.vercel.app",
 
   integrations: [
       react(),
