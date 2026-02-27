@@ -123,7 +123,7 @@ export default function Editor({ lang }: EditorProps) {
   // Use project state for selection, derived in render or useEffect, updated via DB
   // Defaults
   const selectedSizes = project?.selectedSizes || AVAILABLE_SIZES;
-  const selectedExtraAssets = new Set(project?.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson']); // Added defaults
+  const selectedExtraAssets = new Set(project?.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson', 'opengraph']); // Added defaults
 
   const [initialized, setInitialized] = useState(false);
   const [logoDimensions, setLogoDimensions] = useState({ width: 512, height: 512 });
@@ -374,7 +374,7 @@ export default function Editor({ lang }: EditorProps) {
       if (!project || !id) return;
       await db.projects.update(id, {
           selectedSizes: AVAILABLE_SIZES,
-          selectedExtraAssets: ['favicon', 'splash', 'manifest', 'appjson']
+          selectedExtraAssets: ['favicon', 'splash', 'manifest', 'appjson', 'opengraph']
       });
   };
 
@@ -388,7 +388,7 @@ export default function Editor({ lang }: EditorProps) {
 
   const handleToggleExtraAsset = async (asset: string) => {
       if (!project || !id) return;
-      const current = new Set(project.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson']);
+      const current = new Set(project.selectedExtraAssets || ['favicon', 'splash', 'manifest', 'appjson', 'opengraph']);
       if (current.has(asset)) current.delete(asset);
       else current.add(asset);
       await db.projects.update(id, { selectedExtraAssets: Array.from(current) });
@@ -518,17 +518,19 @@ export default function Editor({ lang }: EditorProps) {
       }
 
       // Generate OpenGraph Image
-      try {
-          const ogSvg = await generateOpenGraph(project, svgString);
-          if (ogSvg) {
-              zip.file('opengraph-image.svg', ogSvg);
-              const ogPng = await svgToPng(ogSvg, 1200, 630);
-              if (ogPng) {
-                  zip.file('opengraph-image.png', ogPng);
+      if (selectedExtraAssets.has('opengraph')) {
+          try {
+              const ogSvg = await generateOpenGraph(project, svgString);
+              if (ogSvg) {
+                  zip.file('opengraph-image.svg', ogSvg);
+                  const ogPng = await svgToPng(ogSvg, 1200, 630);
+                  if (ogPng) {
+                      zip.file('opengraph-image.png', ogPng);
+                  }
               }
+          } catch (e) {
+              console.error("OG Generation failed", e);
           }
-      } catch (e) {
-          console.error("OG Generation failed", e);
       }
 
       await Promise.all(promises);

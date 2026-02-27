@@ -96,8 +96,10 @@ export const POST: APIRoute = async ({ request }) => {
                                 flexDirection: 'column',
                                 width: '100%',
                                 height: '100%',
-                                padding: '80px',
-                                justifyContent: 'space-between',
+                                padding: '60px',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                textAlign: 'center',
                             },
                             children: [
                                 // Logo Area
@@ -105,11 +107,11 @@ export const POST: APIRoute = async ({ request }) => {
                                     type: 'img',
                                     props: {
                                         src: logoDataUri,
-                                        width: '200',
-                                        height: '200',
+                                        width: '256',
+                                        height: '256',
                                         style: {
                                             objectFit: 'contain',
-                                            alignSelf: 'flex-start',
+                                            marginBottom: '40px',
                                         },
                                     },
                                 },
@@ -120,6 +122,8 @@ export const POST: APIRoute = async ({ request }) => {
                                         style: {
                                             display: 'flex',
                                             flexDirection: 'column',
+                                            alignItems: 'center',
+                                            width: '100%',
                                         },
                                         children: [
                                             {
@@ -128,11 +132,13 @@ export const POST: APIRoute = async ({ request }) => {
                                                     children: name,
                                                     style: {
                                                         color: textColor,
-                                                        fontSize: '80px',
+                                                        fontSize: '72px',
                                                         fontWeight: 700,
-                                                        lineHeight: 1.05,
+                                                        lineHeight: 1.1,
                                                         letterSpacing: '-0.02em',
                                                         textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                                                        textAlign: 'center',
+                                                        wordBreak: 'break-word',
                                                     },
                                                 },
                                             },
@@ -142,11 +148,13 @@ export const POST: APIRoute = async ({ request }) => {
                                                     children: description || '',
                                                     style: {
                                                         color: textColor,
-                                                        fontSize: '36px',
-                                                        fontWeight: 700,
-                                                        opacity: 0.85,
-                                                        marginTop: '32px',
+                                                        fontSize: '32px',
+                                                        fontWeight: 500,
+                                                        opacity: 0.9,
+                                                        marginTop: '24px',
                                                         lineHeight: 1.4,
+                                                        textAlign: 'center',
+                                                        maxWidth: '80%',
                                                     },
                                                 },
                                             },
