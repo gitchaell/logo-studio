@@ -53,6 +53,18 @@ export default function Sidebar({ lang }: SidebarProps) {
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const currentId = searchParams.get('id');
 
+  // Apply color replacements
+  const getProcessedSvg = (content: string, colors: Record<string, string> | undefined) => {
+    if (!content) return '';
+    if (!colors) return content;
+    let processed = content;
+    Object.entries(colors).forEach(([original, replacement]) => {
+      processed = processed.replaceAll(`"${original}"`, `"${replacement}"`);
+      processed = processed.replaceAll(`'${original}'`, `'${replacement}'`);
+    });
+    return processed;
+  };
+
   return (
     <ResizablePanel
       side="left"
@@ -93,7 +105,7 @@ export default function Sidebar({ lang }: SidebarProps) {
                         className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors group ${currentId === String(project.id) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-slate-900 dark:hover:text-white'}`}
                     >
                         <div className="w-4 h-4 mr-3 shrink-0 rounded overflow-hidden flex items-center justify-center bg-white dark:bg-black/20 border border-zinc-200 dark:border-zinc-700">
-                             <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: project.svgContent }} />
+                             <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: getProcessedSvg(project.svgContent, project.colors) }} />
                         </div>
                         <span className="truncate">{project.name}</span>
                     </a>

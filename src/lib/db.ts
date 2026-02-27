@@ -26,6 +26,9 @@ export interface Project {
   selectedSizes?: number[];
   selectedExtraAssets?: string[];
 
+  // Generated Assets
+  ogImage?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }

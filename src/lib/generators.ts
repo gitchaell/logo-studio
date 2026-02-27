@@ -72,11 +72,15 @@ export const generateAppJson = (project: any, sizes: number[]) => {
 
 export const generateOpenGraph = async (project: any, svgContent: string) => {
     try {
-        const baseUrl = import.meta.env.BASE_URL.endsWith('/')
-            ? import.meta.env.BASE_URL
-            : `${import.meta.env.BASE_URL}/`;
+        // Construct the URL properly, ensuring no double slashes or missing slashes
+        // import.meta.env.BASE_URL usually defaults to "/" in dev, but can be a path in prod.
 
-        const response = await fetch(`${baseUrl}api/generate-og`, {
+        const base = import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL;
+        const apiUrl = `${base}/api/generate-og`.replace('//', '/');
+
+        console.log(`Generating OG Image via: ${apiUrl}`);
+
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -85,7 +89,7 @@ export const generateOpenGraph = async (project: any, svgContent: string) => {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to generate OG image via API');
+            throw new Error(`Failed to generate OG image via API: ${response.status} ${response.statusText}`);
         }
 
         return await response.text();

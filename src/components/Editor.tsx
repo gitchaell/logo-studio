@@ -55,10 +55,16 @@ const getSvgDimensions = (svgString: string) => {
 };
 
 const fitLogoToCanvas = (width: number, height: number) => {
-    const targetSize = 400; // Leave some padding in 512x512 canvas
-    const scale = Math.min(targetSize / width, targetSize / height);
+    // Determine the safe area size.
+    // If width/height is huge, we just want to scale it to fit roughly within 400px view if needed
+    // But for smaller logos (like 128x128), we might want to start at 100% scale.
+    // The previous logic forced fitting to 400px.
+
+    // If the logo is smaller than the default canvas viewport (e.g. 512), maybe just center it at scale 1?
+    // Let's stick to centering at 100% scale for better UX as requested.
+
     return {
-        scale,
+        scale: 1,
         x: 0,
         y: 0
     };
@@ -263,10 +269,20 @@ export default function Editor({ lang }: EditorProps) {
 
   const handleSave = async () => {
     if (project && id) {
+       // Generate OG Image on save
+       let ogImage = undefined;
+       try {
+           const processedSvg = getProcessedSvg();
+           ogImage = await generateOpenGraph({ ...project, colors }, processedSvg);
+       } catch (e) {
+           console.error("Failed to generate OG image on save", e);
+       }
+
        await db.projects.update(id, {
            svgContent: getProcessedSvg(),
            colors: colors,
-           updatedAt: new Date()
+           updatedAt: new Date(),
+           ...(ogImage ? { ogImage } : {})
        });
        addToast(t('editor.saved'), 'success');
     }
@@ -340,7 +356,9 @@ export default function Editor({ lang }: EditorProps) {
                   if (ctx) {
                       // Canvas logic for export
                       if (!isFavicon) {
-                          const radius = (project.borderRadius || 0) * (width / 512);
+                          // Calculate radius relative to the max dimension of the logo container to maintain visual consistency
+                          const maxDim = Math.max(logoDimensions.width, logoDimensions.height);
+                          const radius = (project.borderRadius || 0) * (width / maxDim);
 
                           ctx.beginPath();
                           ctx.moveTo(radius, 0);
@@ -368,13 +386,20 @@ export default function Editor({ lang }: EditorProps) {
                       ctx.translate(width / 2, height / 2);
 
                       // Apply user position
-                      const positionScale = width / 512;
-                      const userLogoX = (project.logoX || 0) * positionScale;
-                      const userLogoY = (project.logoY || 0) * positionScale;
+                      // Position is stored in pixels relative to the logo's intrinsic size
+                      // So we need to scale the translation based on the export ratio
+                      // If export width is equal to logo width, ratio is 1.
+                      // We use max dimension to determine the "canvas" scale relative to the logo
+
+                      const maxDim = Math.max(logoDimensions.width, logoDimensions.height);
+                      const exportRatio = width / maxDim;
+
+                      const userLogoX = (project.logoX || 0) * exportRatio;
+                      const userLogoY = (project.logoY || 0) * exportRatio;
                       ctx.translate(userLogoX, userLogoY);
 
                       // Apply user scale
-                      const exportRatio = width / 512;
+                      // Draw width/height should be the logo's intrinsic size scaled by the export ratio
                       const drawWidth = logoDimensions.width * exportRatio;
                       const drawHeight = logoDimensions.height * exportRatio;
 
@@ -505,8 +530,10 @@ export default function Editor({ lang }: EditorProps) {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 {/* Canvas Background (Artboard) */}
                 <div
-                   className="absolute w-[512px] h-[512px] border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center overflow-hidden"
+                   className="absolute border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center overflow-hidden"
                    style={{
+                       width: logoDimensions.width,
+                       height: logoDimensions.height,
                        backgroundColor: project.backgroundColor || 'transparent',
                        borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
                    }}
@@ -567,58 +594,59 @@ export default function Editor({ lang }: EditorProps) {
 
                 {/* Guides Overlay */}
                 {showGuide && (
-                  <div className="absolute w-[512px] h-[512px] z-20 pointer-events-none opacity-60">
-                    <svg width="512" height="512" viewBox="0 0 512 512" className="stroke-zinc-400/50 dark:stroke-zinc-600/50" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Outer Grid (16x16) - Dashed */}
+                  <div className="absolute z-20 pointer-events-none opacity-60" style={{ width: logoDimensions.width, height: logoDimensions.height }}>
+                    <svg
+                        width={logoDimensions.width}
+                        height={logoDimensions.height}
+                        viewBox={`0 0 ${logoDimensions.width} ${logoDimensions.height}`}
+                        className="stroke-zinc-400/50 dark:stroke-zinc-600/50"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        {/* Outer Grid (Lines every ~1/8th) */}
                         <g strokeDasharray="4 4" strokeWidth="1">
                             {/* Verticals */}
                             {[...Array(7)].map((_, i) => (
-                                <line key={`v-${i}`} x1={(i + 1) * 64} y1="0" x2={(i + 1) * 64} y2="512" />
+                                <line
+                                    key={`v-${i}`}
+                                    x1={(i + 1) * (logoDimensions.width / 8)}
+                                    y1="0"
+                                    x2={(i + 1) * (logoDimensions.width / 8)}
+                                    y2={logoDimensions.height}
+                                />
                             ))}
                             {/* Horizontals */}
                             {[...Array(7)].map((_, i) => (
-                                <line key={`h-${i}`} x1="0" y1={(i + 1) * 64} x2="512" y2={(i + 1) * 64} />
+                                <line
+                                    key={`h-${i}`}
+                                    x1="0"
+                                    y1={(i + 1) * (logoDimensions.height / 8)}
+                                    x2={logoDimensions.width}
+                                    y2={(i + 1) * (logoDimensions.height / 8)}
+                                />
                             ))}
                         </g>
 
                         {/* Center Cross - Solid */}
                         <g strokeWidth="1.5" className="stroke-blue-500/50">
-                            <line x1="256" y1="0" x2="256" y2="512" />
-                            <line x1="0" y1="256" x2="512" y2="256" />
+                            <line x1={logoDimensions.width / 2} y1="0" x2={logoDimensions.width / 2} y2={logoDimensions.height} />
+                            <line x1="0" y1={logoDimensions.height / 2} x2={logoDimensions.width} y2={logoDimensions.height / 2} />
                         </g>
 
                         {/* Diagonals - Dashed */}
                         <g strokeDasharray="4 4" strokeWidth="1">
-                            <line x1="0" y1="0" x2="512" y2="512" />
-                            <line x1="512" y1="0" x2="0" y2="512" />
+                            <line x1="0" y1="0" x2={logoDimensions.width} y2={logoDimensions.height} />
+                            <line x1={logoDimensions.width} y1="0" x2="0" y2={logoDimensions.height} />
                         </g>
 
                         {/* Circular Guides */}
                         <g strokeWidth="1" strokeDasharray="4 4">
-                            {/* Outer Circle (touching edges) */}
-                            <circle cx="256" cy="256" r="256" />
-                            {/* Inner Circle 1 (~85%) */}
-                            <circle cx="256" cy="256" r="218" />
+                             {/* Outer Circle */}
+                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width / 2} ry={logoDimensions.height / 2} />
+                             {/* Inner Circle 1 (~85%) */}
+                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.425} ry={logoDimensions.height * 0.425} />
                              {/* Inner Circle 2 (~50%) */}
-                            <circle cx="256" cy="256" r="128" />
-                             {/* Inner Circle 3 (~25%) */}
-                            <circle cx="256" cy="256" r="64" />
-                        </g>
-
-                        {/* Squircle Guides (App Icon Shape) */}
-                        <g strokeWidth="1.5" strokeDasharray="4 4">
-                             {/* Outer Squircle (Approximate path for Apple's superellipse) */}
-                             <path d="M 256,0
-                                C 64,0 0,64 0,256
-                                C 0,448 64,512 256,512
-                                C 448,512 512,448 512,256
-                                C 512,64 448,0 256,0 Z"
-                                className="stroke-zinc-500/50 dark:stroke-zinc-400/50"
-                                transform="scale(0.9) translate(28.4, 28.4)" // Scale down slightly for visual fit like iOS grid
-                             />
-
-                             {/* Inner Square Guide */}
-                             <rect x="160" y="160" width="192" height="192" rx="30" />
+                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.25} ry={logoDimensions.height * 0.25} />
                         </g>
                     </svg>
                   </div>
