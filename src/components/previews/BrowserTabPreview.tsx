@@ -67,8 +67,43 @@ export function BrowserTabPreview({ svgContent, projectName, theme = 'light', sc
       </div>
 
       {/* Page Content Placeholder */}
-      <div className={`h-32 flex items-center justify-center ${isDark ? 'bg-zinc-900 text-gray-600' : 'bg-white text-gray-300'}`}>
-         <span className="text-4xl font-black opacity-10 select-none">CONTENT</span>
+      <div className={`flex flex-col h-64 overflow-hidden relative ${isDark ? 'bg-zinc-950 text-gray-300' : 'bg-white text-gray-700'}`}>
+
+        {/* Mock Header */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-zinc-800' : 'border-gray-100'}`}>
+           <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 flex items-center justify-center">
+                 <div style={logoTransformStyle}>
+                     <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                 </div>
+              </div>
+              <span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>{projectName || 'Brand'}</span>
+           </div>
+
+           <div className="hidden sm:flex items-center space-x-6 text-sm font-medium opacity-70">
+              <span>Home</span>
+              <span>Features</span>
+              <span>Pricing</span>
+              <span>About</span>
+           </div>
+
+           <div className={`w-8 h-8 rounded-full ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}></div>
+        </div>
+
+        {/* Mock Hero Section */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 bg-gradient-to-b from-transparent to-black/5 dark:to-white/5">
+             <h1 className={`text-2xl sm:text-3xl font-bold max-w-md ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Build something amazing with {projectName || 'Brand'}
+             </h1>
+             <p className="max-w-sm text-sm opacity-70">
+                The ultimate solution for your next big project. Start creating today and scale your business.
+             </p>
+             <div className="flex space-x-3 mt-4">
+                 <div className={`h-9 px-5 rounded-md flex items-center text-sm font-medium ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>Get Started</div>
+                 <div className={`h-9 px-5 rounded-md flex items-center text-sm font-medium border ${isDark ? 'border-zinc-700 hover:bg-zinc-800' : 'border-gray-200 hover:bg-gray-50'}`}>Learn More</div>
+             </div>
+        </div>
+
       </div>
     </div>
   );

@@ -138,11 +138,20 @@ export default function Gallery({ lang }: GalleryProps) {
               {filteredProjects?.map((project) => (
                 <div key={project.id} className="group relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
                   {/* Preview Area */}
-                  <a href={`/${lang}/editor?id=${project.id}`} className="aspect-video bg-zinc-50 dark:bg-black/40 flex items-center justify-center p-8 border-b border-zinc-200 dark:border-zinc-800 group-hover:bg-zinc-100 dark:group-hover:bg-black/60 transition-colors cursor-pointer relative overflow-hidden">
-                    <div
-                      className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
-                      dangerouslySetInnerHTML={{ __html: project.svgContent }}
-                    />
+                  <a href={`/${lang}/editor?id=${project.id}`} className="aspect-video bg-zinc-50 dark:bg-black/40 flex items-center justify-center p-0 border-b border-zinc-200 dark:border-zinc-800 group-hover:bg-zinc-100 dark:group-hover:bg-black/60 transition-colors cursor-pointer relative overflow-hidden">
+                    {project.ogImage ? (
+                        <div
+                            className="w-full h-full [&>svg]:w-full [&>svg]:h-full [&>svg]:object-cover"
+                            dangerouslySetInnerHTML={{ __html: project.ogImage }}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center p-8">
+                            <div
+                                className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:object-contain"
+                                dangerouslySetInnerHTML={{ __html: project.svgContent }}
+                            />
+                        </div>
+                    )}
                   </a>
 
                   {/* Details */}

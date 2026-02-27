@@ -5,6 +5,7 @@ import { html } from 'satori-html';
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  console.log('[API] generate-og called');
   try {
     const { project, svgContent } = await request.json();
     const { backgroundColor } = project;
@@ -22,11 +23,18 @@ export const POST: APIRoute = async ({ request }) => {
     `;
 
     // Fetch font (Use TTF from Google Fonts to avoid WOFF2 issues in satori)
-    const fontRes = await fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hjp-Ek-_EeA.ttf');
-    if (!fontRes.ok) {
-        throw new Error(`Failed to load font: ${fontRes.statusText}`);
+    let fontData;
+    try {
+        const fontRes = await fetch('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYAZ9hjp-Ek-_EeA.ttf');
+        if (!fontRes.ok) {
+            throw new Error(`Failed to load font: ${fontRes.statusText}`);
+        }
+        fontData = await fontRes.arrayBuffer();
+    } catch (fontError) {
+        console.error('Font loading failed:', fontError);
+        // Fallback or error re-throw
+        throw fontError;
     }
-    const fontData = await fontRes.arrayBuffer();
 
     const svg = await satori(markup, {
         width: 1200,

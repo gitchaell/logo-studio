@@ -21,6 +21,22 @@ export function ManifestPreview({
 }: ManifestPreviewProps) {
   const isLandscape = orientation === 'landscape';
 
+  // Simple check for dark background
+  const isDarkColor = (color: string) => {
+    if (!color) return false;
+    if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return (r * 0.299 + g * 0.587 + b * 0.114) < 128;
+    }
+    return false;
+  };
+
+  const isDarkBg = isDarkColor(backgroundColor);
+  const isDarkTheme = isDarkColor(themeColor);
+
   const logoTransformStyle = {
       transform: `scale(${scale})`,
       transformOrigin: 'center',
@@ -59,10 +75,10 @@ export function ManifestPreview({
                 {/* Status Bar (Hidden in fullscreen) */}
                 {display !== 'fullscreen' && (
                     <div className="h-3 w-full flex justify-between items-center px-3 shrink-0" style={{ backgroundColor: themeColor }}>
-                        <div className="w-8 h-1 bg-black/20 rounded-full"></div>
+                        <div className={`w-8 h-1 rounded-full ${isDarkTheme ? 'bg-white/20' : 'bg-black/20'}`}></div>
                         <div className="flex gap-0.5">
-                            <div className="w-1 h-1 bg-black/20 rounded-full"></div>
-                            <div className="w-1 h-1 bg-black/20 rounded-full"></div>
+                            <div className={`w-1 h-1 rounded-full ${isDarkTheme ? 'bg-white/20' : 'bg-black/20'}`}></div>
+                            <div className={`w-1 h-1 rounded-full ${isDarkTheme ? 'bg-white/20' : 'bg-black/20'}`}></div>
                         </div>
                     </div>
                 )}
@@ -78,9 +94,9 @@ export function ManifestPreview({
 
                 {/* App Content */}
                 <div className="flex-1 w-full flex flex-col items-center justify-center p-4">
-                    <div className="w-8 h-8 rounded-lg bg-black/5 mb-2"></div>
-                    <div className="w-16 h-1 bg-black/5 rounded-full mb-1"></div>
-                    <div className="w-12 h-1 bg-black/5 rounded-full"></div>
+                    <div className={`w-8 h-8 rounded-lg mb-2 ${isDarkBg ? 'bg-white/10' : 'bg-black/5'}`}></div>
+                    <div className={`w-16 h-1 rounded-full mb-1 ${isDarkBg ? 'bg-white/10' : 'bg-black/5'}`}></div>
+                    <div className={`w-12 h-1 rounded-full ${isDarkBg ? 'bg-white/10' : 'bg-black/5'}`}></div>
                 </div>
 
                 {/* Bottom Nav (Browser only) */}
@@ -94,7 +110,7 @@ export function ManifestPreview({
 
                 {/* Gesture Bar (Standalone/Minimal) */}
                 {(display === 'standalone' || display === 'minimal-ui' || display === 'fullscreen') && (
-                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-black/20 rounded-full"></div>
+                    <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full ${isDarkBg ? 'bg-white/20' : 'bg-black/20'}`}></div>
                 )}
               </>
           )}
