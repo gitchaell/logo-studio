@@ -32,7 +32,20 @@ export const POST: APIRoute = async ({ request }) => {
     const bg = backgroundColor || '#ffffff';
     const textColor = getContrastingTextColor(bg);
 
-    const base64Logo = Buffer.from(svgContent).toString('base64');
+    // Helper to ensure SVG is valid and has dimensions
+    const fixSvgAttributes = (svg: string) => {
+        let fixed = svg.trim();
+        if (!fixed.includes('xmlns="http://www.w3.org/2000/svg"')) {
+            fixed = fixed.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if (!fixed.includes('width=') && !fixed.includes('viewBox')) {
+            fixed = fixed.replace('<svg', '<svg width="512" height="512" viewBox="0 0 512 512"');
+        }
+        return fixed;
+    };
+
+    const cleanSvg = fixSvgAttributes(svgContent);
+    const base64Logo = Buffer.from(cleanSvg).toString('base64');
     const logoDataUri = `data:image/svg+xml;base64,${base64Logo}`;
 
     // SVG Pattern for Noise Effect
@@ -57,6 +70,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Attempt 1: Full Modern Layout
     try {
+        // Grid pattern background
+        const gridColor = textColor === '#ffffff' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+        const gridBg = `
+            radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%),
+            linear-gradient(${gridColor} 1px, transparent 1px),
+            linear-gradient(90deg, ${gridColor} 1px, transparent 1px)
+        `;
+
         const markup = {
             type: 'div',
             props: {
@@ -66,7 +87,8 @@ export const POST: APIRoute = async ({ request }) => {
                     width: '100%',
                     height: '100%',
                     backgroundColor: bg,
-                    backgroundImage: `radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%)`,
+                    backgroundImage: gridBg,
+                    backgroundSize: '100% 100%, 40px 40px, 40px 40px',
                     fontFamily: 'CustomFont',
                     position: 'relative',
                 },
@@ -83,7 +105,7 @@ export const POST: APIRoute = async ({ request }) => {
                                 height: '100%',
                                 backgroundImage: `url('${noiseDataUri}')`,
                                 backgroundRepeat: 'repeat',
-                                opacity: 0.3, // Adjust visibility of noise
+                                opacity: 0.2, // Adjust visibility of noise
                             },
                         },
                     },
