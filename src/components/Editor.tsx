@@ -81,6 +81,13 @@ export default function Editor({ lang }: EditorProps) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // View Controls
+  const [viewScale, setViewScale] = useState(1);
+  const [viewPosition, setViewPosition] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   const [colors, setColors] = useState<Record<string, string>>({});
   const [uniqueColors, setUniqueColors] = useState<string[]>([]);
   const [showGuide, setShowGuide] = useLocalStorage('editor-show-guide', true);
@@ -183,28 +190,66 @@ export default function Editor({ lang }: EditorProps) {
     if (activeTab !== 'edit') return;
     e.preventDefault();
     const zoomSensitivity = 0.001;
-    const newScale = Math.min(Math.max(0.1, scale - e.deltaY * zoomSensitivity), 5);
-    setScale(newScale);
+    const newViewScale = Math.min(Math.max(0.1, viewScale - e.deltaY * zoomSensitivity), 5);
+    setViewScale(newViewScale);
   };
+
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+         e.preventDefault(); // Prevent scrolling
+         setIsSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (activeTab !== 'edit') return;
-    if (e.button === 1 || e.button === 0) { // Middle or Left click
+
+    // Middle click or Space+Left Click
+    if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - viewPosition.x, y: e.clientY - viewPosition.y });
+    } else if (e.button === 0) {
       setIsDragging(true);
-      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+      // Account for view scale when calculating drag start relative to logo position
+      setDragStart({
+          x: e.clientX / viewScale - position.x,
+          y: e.clientY / viewScale - position.y
+      });
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
+    if (isPanning) {
+        setViewPosition({
+            x: e.clientX - panStart.x,
+            y: e.clientY - panStart.y
+        });
+    } else if (isDragging) {
       setPosition({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
+        x: e.clientX / viewScale - dragStart.x,
+        y: e.clientY / viewScale - dragStart.y
       });
     }
   };
 
   const handleMouseUp = () => {
+      setIsPanning(false);
       setIsDragging(false);
       if (project && id) {
           db.projects.update(id, { logoX: position.x, logoY: position.y });
@@ -520,150 +565,186 @@ export default function Editor({ lang }: EditorProps) {
          </header>
 
          {/* Edit Mode Canvas */}
-         <div className={`flex-1 relative bg-zinc-50 dark:bg-zinc-950 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] overflow-hidden cursor-move ${activeTab === 'edit' ? 'block' : 'hidden'}`}
+         <div className={`flex-1 relative bg-zinc-50 dark:bg-zinc-950 overflow-hidden cursor-grab active:cursor-grabbing ${activeTab === 'edit' ? 'block' : 'hidden'}`}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onWheel={handleWheel}
          >
+            {/* Infinite Grid Background - Moves with Pan/Zoom */}
+             <div
+                className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"
+                style={{
+                    transform: `translate(${viewPosition.x}px, ${viewPosition.y}px) scale(${viewScale})`,
+                    transformOrigin: '0 0'
+                }}
+             />
+
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                {/* Canvas Background (Artboard) */}
+                {/* View Container - Handles Zoom/Pan of the Work Area */}
                 <div
-                   className="absolute border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center overflow-hidden"
-                   style={{
-                       width: logoDimensions.width,
-                       height: logoDimensions.height,
-                       backgroundColor: project.backgroundColor || 'transparent',
-                       borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
-                   }}
+                    style={{
+                        transform: `translate(${viewPosition.x}px, ${viewPosition.y}px) scale(${viewScale})`,
+                        transformOrigin: 'center',
+                        transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+                    }}
                 >
-                    {/* Render the LOGO inside the artboard with correct dimensions and transform */}
-                         <div
+                    {/* Canvas Background (Artboard) */}
+                    <div
+                    className="relative border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center justify-center overflow-hidden pointer-events-auto"
+                    style={{
+                        width: logoDimensions.width,
+                        height: logoDimensions.height,
+                        backgroundColor: project.backgroundColor || 'transparent',
+                        borderRadius: project.borderRadius ? `${project.borderRadius}px` : '0'
+                    }}
+                    onMouseDown={(e) => {
+                        // If not panning, we are interacting with content
+                        if (e.button !== 1 && !isSpacePressed) {
+                             e.stopPropagation();
+                             // Manually trigger handleMouseDown because stopPropagation prevents the parent from hearing it
+                             // But we need parent to handle the "logo drag" logic which is currently on the parent container
+                             // Actually, let's keep the logic on the parent but prevent "pan" if clicking here?
+                             // No, we want to allow dragging logo here.
+                             // The parent handler handles both based on button/keys.
+                             // So we just let it bubble?
+                             // Yes, bubbling is fine.
+                             // But we need to make sure we don't start panning if we click on the logo to drag it.
+                             // The parent handler checks for button 1 or space.
+                             handleMouseDown(e);
+                        }
+                    }}
+                    >
+                        {/* Render the LOGO inside the artboard with correct dimensions and transform */}
+                            <div
+                                style={{
+                                    width: logoDimensions.width,
+                                    height: logoDimensions.height,
+                                    transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                                    transformOrigin: 'center',
+                                    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                                    flexShrink: 0 // Prevent shrinking
+                                }}
+                            >
+                                <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
+                            </div>
+                    </div>
+
+                    {/* Selection Overlay */}
+                    {/* Matches the position of the artboard content exactly */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div
                             style={{
                                 width: logoDimensions.width,
                                 height: logoDimensions.height,
                                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                                 transformOrigin: 'center',
-                                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                                flexShrink: 0 // Prevent shrinking
+                                position: 'relative'
                             }}
-                         >
-                              <div style={{ width: '100%', height: '100%' }} dangerouslySetInnerHTML={{ __html: getProcessedSvg() }} />
-                         </div>
-                </div>
+                        >
+                            {/* Outline */}
+                            <div className="absolute inset-0 border border-blue-500 opacity-50 pointer-events-none"></div>
 
-                {/* Selection Overlay */}
-                {/* Matches the position of the artboard content exactly */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div
-                        style={{
-                            width: logoDimensions.width,
-                            height: logoDimensions.height,
-                            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                            transformOrigin: 'center',
-                            position: 'relative'
-                        }}
-                    >
-                        {/* Outline */}
-                        <div className="absolute inset-0 border border-blue-500 opacity-50 pointer-events-none"></div>
-
-                        {/* Handles */}
-                        <div
-                            className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
-                            style={{ transform: `scale(${1/scale})` }}
-                        />
-                        <div
-                            className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
-                            style={{ transform: `scale(${1/scale})` }}
-                        />
-                        <div
-                            className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
-                            style={{ transform: `scale(${1/scale})` }}
-                        />
-                        <div
-                            className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
-                            style={{ transform: `scale(${1/scale})` }}
-                        />
+                            {/* Handles */}
+                            <div
+                                className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                                onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
+                                style={{ transform: `scale(${1/scale})` }}
+                            />
+                            <div
+                                className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                                onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
+                                style={{ transform: `scale(${1/scale})` }}
+                            />
+                            <div
+                                className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nesw-resize pointer-events-auto shadow-sm"
+                                onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
+                                style={{ transform: `scale(${1/scale})` }}
+                            />
+                            <div
+                                className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-blue-500 rounded-full cursor-nwse-resize pointer-events-auto shadow-sm"
+                                onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
+                                style={{ transform: `scale(${1/scale})` }}
+                            />
+                        </div>
                     </div>
+
+                    {/* Guides Overlay */}
+                    {showGuide && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                    <div className="opacity-60" style={{ width: logoDimensions.width, height: logoDimensions.height }}>
+                        <svg
+                            width={logoDimensions.width}
+                            height={logoDimensions.height}
+                            viewBox={`0 0 ${logoDimensions.width} ${logoDimensions.height}`}
+                            className="stroke-zinc-400/50 dark:stroke-zinc-600/50"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            {/* Outer Grid (Lines every ~1/4th) */}
+                            <g strokeDasharray="2 4" strokeWidth="0.5" vectorEffect="non-scaling-stroke" opacity="0.5">
+                                {/* Verticals */}
+                                {[...Array(3)].map((_, i) => (
+                                    <line
+                                        key={`v-${i}`}
+                                        x1={(i + 1) * (logoDimensions.width / 4)}
+                                        y1="0"
+                                        x2={(i + 1) * (logoDimensions.width / 4)}
+                                        y2={logoDimensions.height}
+                                    />
+                                ))}
+                                {/* Horizontals */}
+                                {[...Array(3)].map((_, i) => (
+                                    <line
+                                        key={`h-${i}`}
+                                        x1="0"
+                                        y1={(i + 1) * (logoDimensions.height / 4)}
+                                        x2={logoDimensions.width}
+                                        y2={(i + 1) * (logoDimensions.height / 4)}
+                                    />
+                                ))}
+                            </g>
+
+                            {/* Center Cross - Solid */}
+                            <g strokeWidth="1" className="stroke-cyan-500" vectorEffect="non-scaling-stroke" opacity="0.6">
+                                <line x1={logoDimensions.width / 2} y1="0" x2={logoDimensions.width / 2} y2={logoDimensions.height} />
+                                <line x1="0" y1={logoDimensions.height / 2} x2={logoDimensions.width} y2={logoDimensions.height / 2} />
+                            </g>
+
+                            {/* Diagonals - Dashed */}
+                            <g strokeDasharray="2 4" strokeWidth="0.5" vectorEffect="non-scaling-stroke" opacity="0.4">
+                                <line x1="0" y1="0" x2={logoDimensions.width} y2={logoDimensions.height} />
+                                <line x1={logoDimensions.width} y1="0" x2="0" y2={logoDimensions.height} />
+                            </g>
+
+                            {/* Circular Guides */}
+                            <g strokeWidth="0.5" strokeDasharray="2 4" vectorEffect="non-scaling-stroke" opacity="0.5">
+                                {/* Outer Circle */}
+                                <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width / 2} ry={logoDimensions.height / 2} />
+                                {/* Inner Circle 1 (~85% = 340/400 approx safe zone) */}
+                                <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.425} ry={logoDimensions.height * 0.425} />
+                                {/* Inner Circle 2 (~50%) */}
+                                <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.25} ry={logoDimensions.height * 0.25} />
+                            </g>
+                        </svg>
+                    </div>
+                    </div>
+                    )}
                 </div>
-
-                {/* Guides Overlay */}
-                {showGuide && (
-                  <div className="absolute z-20 pointer-events-none opacity-60" style={{ width: logoDimensions.width, height: logoDimensions.height }}>
-                    <svg
-                        width={logoDimensions.width}
-                        height={logoDimensions.height}
-                        viewBox={`0 0 ${logoDimensions.width} ${logoDimensions.height}`}
-                        className="stroke-zinc-400/50 dark:stroke-zinc-600/50"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        {/* Outer Grid (Lines every ~1/8th) */}
-                        <g strokeDasharray="4 4" strokeWidth="1">
-                            {/* Verticals */}
-                            {[...Array(7)].map((_, i) => (
-                                <line
-                                    key={`v-${i}`}
-                                    x1={(i + 1) * (logoDimensions.width / 8)}
-                                    y1="0"
-                                    x2={(i + 1) * (logoDimensions.width / 8)}
-                                    y2={logoDimensions.height}
-                                />
-                            ))}
-                            {/* Horizontals */}
-                            {[...Array(7)].map((_, i) => (
-                                <line
-                                    key={`h-${i}`}
-                                    x1="0"
-                                    y1={(i + 1) * (logoDimensions.height / 8)}
-                                    x2={logoDimensions.width}
-                                    y2={(i + 1) * (logoDimensions.height / 8)}
-                                />
-                            ))}
-                        </g>
-
-                        {/* Center Cross - Solid */}
-                        <g strokeWidth="1.5" className="stroke-blue-500/50">
-                            <line x1={logoDimensions.width / 2} y1="0" x2={logoDimensions.width / 2} y2={logoDimensions.height} />
-                            <line x1="0" y1={logoDimensions.height / 2} x2={logoDimensions.width} y2={logoDimensions.height / 2} />
-                        </g>
-
-                        {/* Diagonals - Dashed */}
-                        <g strokeDasharray="4 4" strokeWidth="1">
-                            <line x1="0" y1="0" x2={logoDimensions.width} y2={logoDimensions.height} />
-                            <line x1={logoDimensions.width} y1="0" x2="0" y2={logoDimensions.height} />
-                        </g>
-
-                        {/* Circular Guides */}
-                        <g strokeWidth="1" strokeDasharray="4 4">
-                             {/* Outer Circle */}
-                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width / 2} ry={logoDimensions.height / 2} />
-                             {/* Inner Circle 1 (~85%) */}
-                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.425} ry={logoDimensions.height * 0.425} />
-                             {/* Inner Circle 2 (~50%) */}
-                            <ellipse cx={logoDimensions.width / 2} cy={logoDimensions.height / 2} rx={logoDimensions.width * 0.25} ry={logoDimensions.height * 0.25} />
-                        </g>
-                    </svg>
-                  </div>
-                )}
             </div>
 
             {/* Controls Overlay */}
             <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-zinc-200 dark:border-zinc-800 rounded-full shadow-lg px-4 py-2 flex items-center space-x-4">
-                <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300">
+                <button onClick={() => setViewScale(s => Math.max(0.1, s - 0.1))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300">
                     <Minus className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-mono w-12 text-center text-slate-900 dark:text-white">{Math.round(scale * 100)}%</span>
-                <button onClick={() => setScale(s => Math.min(5, s + 0.1))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300">
+                <span className="text-xs font-mono w-12 text-center text-slate-900 dark:text-white">{Math.round(viewScale * 100)}%</span>
+                <button onClick={() => setViewScale(s => Math.min(5, s + 0.1))} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300">
                     <Plus className="w-4 h-4" />
                 </button>
                 <div className="w-px h-4 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
-                <button onClick={() => { setScale(1); setPosition({x:0,y:0}); }} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300" title={t('editor.reset_view')}>
+                <button onClick={() => { setViewScale(1); setViewPosition({x:0,y:0}); }} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-slate-600 dark:text-slate-300" title={t('editor.reset_view')}>
                     <RefreshCw className="w-4 h-4" />
                 </button>
                 <div className="w-px h-4 bg-zinc-300 dark:bg-zinc-700 mx-2"></div>
