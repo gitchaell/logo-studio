@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ui, defaultLang } from '@/i18n/ui';
 import { useToast } from './ui/Toast';
 import { Modal } from './ui/Modal';
+import { normalizeSvg } from '@/lib/svg-utils';
 
 interface GalleryProps {
     lang: string;
@@ -40,9 +41,10 @@ export default function Gallery({ lang }: GalleryProps) {
     reader.onload = async (e) => {
       const content = e.target?.result as string;
       try {
+        const normalizedContent = normalizeSvg(content);
         const id = await db.projects.add({
           name: file.name.replace('.svg', ''),
-          svgContent: content,
+          svgContent: normalizedContent,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
