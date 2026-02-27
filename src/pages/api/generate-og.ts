@@ -32,7 +32,30 @@ export const POST: APIRoute = async ({ request }) => {
     const bg = backgroundColor || '#ffffff';
     const textColor = getContrastingTextColor(bg);
 
-    const base64Logo = Buffer.from(svgContent).toString('base64');
+    // Helper to ensure SVG is valid and has dimensions
+    const fixSvgAttributes = (svg: string) => {
+        let fixed = svg.trim();
+        if (!fixed.includes('xmlns="http://www.w3.org/2000/svg"')) {
+            fixed = fixed.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if (!fixed.includes('width=') && !fixed.includes('viewBox')) {
+            fixed = fixed.replace('<svg', '<svg width="512" height="512" viewBox="0 0 512 512"');
+        }
+        return fixed;
+    };
+
+    const cleanSvg = fixSvgAttributes(svgContent);
+    // Parse SVG string to VDOM using satori-html
+    // This embeds the SVG directly instead of using an image tag, which can be more reliable for some SVGs
+    // However, we need to make sure we wrap it correctly.
+    let logoVdom;
+    try {
+        logoVdom = html(cleanSvg);
+    } catch (e) {
+        console.warn('Failed to parse SVG with satori-html, falling back to img tag', e);
+    }
+
+    const base64Logo = Buffer.from(cleanSvg).toString('base64');
     const logoDataUri = `data:image/svg+xml;base64,${base64Logo}`;
 
     // SVG Pattern for Noise Effect
@@ -57,6 +80,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Attempt 1: Full Modern Layout
     try {
+        // Grid pattern background
+        const gridColor = textColor === '#ffffff' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+        const gridBg = `
+            radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%),
+            linear-gradient(${gridColor} 1px, transparent 1px),
+            linear-gradient(90deg, ${gridColor} 1px, transparent 1px)
+        `;
+
         const markup = {
             type: 'div',
             props: {
@@ -66,7 +97,8 @@ export const POST: APIRoute = async ({ request }) => {
                     width: '100%',
                     height: '100%',
                     backgroundColor: bg,
-                    backgroundImage: `radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%)`,
+                    backgroundImage: gridBg,
+                    backgroundSize: '100% 100%, 40px 40px, 40px 40px',
                     fontFamily: 'CustomFont',
                     position: 'relative',
                 },
@@ -83,7 +115,7 @@ export const POST: APIRoute = async ({ request }) => {
                                 height: '100%',
                                 backgroundImage: `url('${noiseDataUri}')`,
                                 backgroundRepeat: 'repeat',
-                                opacity: 0.3, // Adjust visibility of noise
+                                opacity: 0.2, // Adjust visibility of noise
                             },
                         },
                     },
@@ -96,20 +128,49 @@ export const POST: APIRoute = async ({ request }) => {
                                 flexDirection: 'column',
                                 width: '100%',
                                 height: '100%',
-                                padding: '80px',
-                                justifyContent: 'space-between',
+                                padding: '60px',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                textAlign: 'center',
                             },
                             children: [
                                 // Logo Area
-                                {
+                                logoVdom ? {
+                                    type: 'div',
+                                    props: {
+                                        style: {
+                                            display: 'flex',
+                                            width: '256px',
+                                            height: '256px',
+                                            marginBottom: '40px',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                        },
+                                        children: [
+                                            {
+                                                ...logoVdom,
+                                                props: {
+                                                    ...logoVdom.props,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    style: {
+                                                        ...logoVdom.props.style,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                } : {
                                     type: 'img',
                                     props: {
                                         src: logoDataUri,
-                                        width: '200',
-                                        height: '200',
+                                        width: '256',
+                                        height: '256',
                                         style: {
                                             objectFit: 'contain',
-                                            alignSelf: 'flex-start',
+                                            marginBottom: '40px',
                                         },
                                     },
                                 },
@@ -120,6 +181,8 @@ export const POST: APIRoute = async ({ request }) => {
                                         style: {
                                             display: 'flex',
                                             flexDirection: 'column',
+                                            alignItems: 'center',
+                                            width: '100%',
                                         },
                                         children: [
                                             {
@@ -128,11 +191,13 @@ export const POST: APIRoute = async ({ request }) => {
                                                     children: name,
                                                     style: {
                                                         color: textColor,
-                                                        fontSize: '80px',
+                                                        fontSize: '72px',
                                                         fontWeight: 700,
-                                                        lineHeight: 1.05,
+                                                        lineHeight: 1.1,
                                                         letterSpacing: '-0.02em',
                                                         textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                                                        textAlign: 'center',
+                                                        wordBreak: 'break-word',
                                                     },
                                                 },
                                             },
@@ -142,11 +207,13 @@ export const POST: APIRoute = async ({ request }) => {
                                                     children: description || '',
                                                     style: {
                                                         color: textColor,
-                                                        fontSize: '36px',
-                                                        fontWeight: 700,
-                                                        opacity: 0.85,
-                                                        marginTop: '32px',
+                                                        fontSize: '32px',
+                                                        fontWeight: 500,
+                                                        opacity: 0.9,
+                                                        marginTop: '24px',
                                                         lineHeight: 1.4,
+                                                        textAlign: 'center',
+                                                        maxWidth: '80%',
                                                     },
                                                 },
                                             },

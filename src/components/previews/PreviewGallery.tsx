@@ -474,6 +474,37 @@ export function PreviewGallery({
                                 </div>
                             </div>
 
+                            <div
+                                onClick={() => onToggleExtraAsset('opengraph')}
+                                className={`relative group cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-end space-y-3 h-[240px] transition-all ${
+                                    selectedExtraAssets.has('opengraph')
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                    : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                                }`}
+                            >
+                                <div className="absolute top-3 right-3 z-10">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                                        selectedExtraAssets.has('opengraph')
+                                        ? 'bg-blue-500 border-blue-500'
+                                        : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                    }`}>
+                                        {selectedExtraAssets.has('opengraph') && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
+                                     <div className="w-full aspect-[1200/630] bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
+                                        {ogImage ? (
+                                            <div className="w-full h-full [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: ogImage }} />
+                                        ) : (
+                                            <div className="text-xs text-slate-400">Preview</div>
+                                        )}
+                                     </div>
+                                </div>
+                                <div className="text-center shrink-0">
+                                    <span className="block text-sm font-semibold text-slate-900 dark:text-white">opengraph.png</span>
+                                </div>
+                            </div>
+
                             {/* Standard Sizes */}
                             {[...AVAILABLE_SIZES, ...customSizes].sort((a, b) => b - a).map(size => {
                                 const isSelected = selectedSizes.includes(size);
