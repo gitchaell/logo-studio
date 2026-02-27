@@ -11,48 +11,11 @@ import { PreviewGallery } from './previews/PreviewGallery';
 import { generateManifest, generateAppJson, generateOpenGraph } from '@/lib/generators';
 import { AVAILABLE_SIZES } from '@/lib/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { getSvgDimensions, normalizeSvg } from '@/lib/svg-utils';
 
 interface EditorProps {
     lang: string;
 }
-
-const getSvgDimensions = (svgString: string) => {
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(svgString, 'image/svg+xml');
-        const svg = doc.querySelector('svg');
-        if (!svg) return { width: 512, height: 512 };
-
-        let width = parseFloat(svg.getAttribute('width') || '');
-        let height = parseFloat(svg.getAttribute('height') || '');
-        const viewBox = svg.getAttribute('viewBox');
-
-        // Prioritize viewBox for accurate dimensions and aspect ratio
-        if (viewBox) {
-            const parts = viewBox.split(/[\s,]+/).filter(Boolean);
-            if (parts.length === 4) {
-                const vbWidth = parseFloat(parts[2]);
-                const vbHeight = parseFloat(parts[3]);
-
-                if (!isNaN(vbWidth) && !isNaN(vbHeight)) {
-                    return { width: vbWidth, height: vbHeight };
-                }
-            }
-        }
-
-        // Fallback to width/height attributes if viewBox is missing or invalid
-        // Handle percentage widths/heights by defaulting to 512
-        if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = 512;
-        if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = 512;
-
-        return {
-            width: width,
-            height: height
-        };
-    } catch (e) {
-        return { width: 512, height: 512 };
-    }
-};
 
 const svgToPng = (svgString: string, width: number, height: number): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -545,12 +508,14 @@ export default function Editor({ lang }: EditorProps) {
           reader.onload = async (ev) => {
               const content = ev.target?.result as string;
 
+              const normalizedContent = normalizeSvg(content);
+
               // Calculate auto-fit for the new logo
-              const dims = getSvgDimensions(content);
+              const dims = getSvgDimensions(normalizedContent);
               const { scale: fitScale, x, y } = fitLogoToCanvas(dims.width, dims.height);
 
               await db.projects.update(id, {
-                  svgContent: content,
+                  svgContent: normalizedContent,
                   updatedAt: new Date(),
                   logoScale: fitScale,
                   logoX: x,
