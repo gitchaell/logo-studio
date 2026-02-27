@@ -35,6 +35,18 @@ export const POST: APIRoute = async ({ request }) => {
     const base64Logo = Buffer.from(svgContent).toString('base64');
     const logoDataUri = `data:image/svg+xml;base64,${base64Logo}`;
 
+    // SVG Pattern for Noise Effect
+    // This adds a subtle grain/noise texture
+    const noiseSvg = `
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <filter id="noiseFilter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#noiseFilter)" opacity="0.15" />
+    </svg>
+    `;
+    const noiseDataUri = `data:image/svg+xml;base64,${Buffer.from(noiseSvg).toString('base64')}`;
+
     let fontData;
     try {
          const fontPath = path.join(process.cwd(), 'public/fonts/google-sans/GoogleSans-Bold.ttf');
@@ -43,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
          throw new Error('Font load failed');
     }
 
-    // Attempt 1: Full layout with Logo + Text.
+    // Attempt 1: Full Modern Layout
     try {
         const markup = {
             type: 'div',
@@ -54,54 +66,91 @@ export const POST: APIRoute = async ({ request }) => {
                     width: '100%',
                     height: '100%',
                     backgroundColor: bg,
-                    padding: '80px',
-                    justifyContent: 'space-between',
+                    backgroundImage: `radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%)`,
                     fontFamily: 'CustomFont',
+                    position: 'relative',
                 },
                 children: [
-                     {
-                        type: 'img',
+                     // Noise Overlay
+                    {
+                        type: 'div',
                         props: {
-                            src: logoDataUri,
-                            width: '200',
-                            height: '200',
                             style: {
-                                objectFit: 'contain',
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                backgroundImage: `url('${noiseDataUri}')`,
+                                backgroundRepeat: 'repeat',
+                                opacity: 0.3, // Adjust visibility of noise
                             },
                         },
                     },
+                    // Main Content Container
                     {
                         type: 'div',
                         props: {
                             style: {
                                 display: 'flex',
                                 flexDirection: 'column',
+                                width: '100%',
+                                height: '100%',
+                                padding: '80px',
+                                justifyContent: 'space-between',
                             },
                             children: [
+                                // Logo Area
                                 {
-                                    type: 'div',
+                                    type: 'img',
                                     props: {
-                                        children: name,
+                                        src: logoDataUri,
+                                        width: '200',
+                                        height: '200',
                                         style: {
-                                            color: textColor,
-                                            fontSize: '80px',
-                                            fontWeight: 700,
-                                            lineHeight: 1.05,
+                                            objectFit: 'contain',
+                                            alignSelf: 'flex-start',
                                         },
                                     },
                                 },
+                                // Text Area
                                 {
                                     type: 'div',
                                     props: {
-                                        children: description || '',
                                         style: {
-                                            color: textColor,
-                                            fontSize: '36px',
-                                            fontWeight: 700,
-                                            opacity: 0.85,
-                                            marginTop: '32px',
-                                            lineHeight: 1.4,
+                                            display: 'flex',
+                                            flexDirection: 'column',
                                         },
+                                        children: [
+                                            {
+                                                type: 'div',
+                                                props: {
+                                                    children: name,
+                                                    style: {
+                                                        color: textColor,
+                                                        fontSize: '80px',
+                                                        fontWeight: 700,
+                                                        lineHeight: 1.05,
+                                                        letterSpacing: '-0.02em',
+                                                        textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                type: 'div',
+                                                props: {
+                                                    children: description || '',
+                                                    style: {
+                                                        color: textColor,
+                                                        fontSize: '36px',
+                                                        fontWeight: 700,
+                                                        opacity: 0.85,
+                                                        marginTop: '32px',
+                                                        lineHeight: 1.4,
+                                                    },
+                                                },
+                                            },
+                                        ],
                                     },
                                 },
                             ],
@@ -135,7 +184,6 @@ export const POST: APIRoute = async ({ request }) => {
         console.warn('Full OG generation failed, trying Logo-only as per user request...', innerError);
 
         // Fallback: Logo Only (Centered, large)
-        // User requested: "solo muestra el logo como fallback, pero prioriza que se vea el opengraph que quiero"
         try {
             const markupLogo = {
                 type: 'div',
@@ -145,15 +193,32 @@ export const POST: APIRoute = async ({ request }) => {
                         width: '100%',
                         height: '100%',
                         backgroundColor: bg,
+                        backgroundImage: `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 100%)`, // Add gradient here too
                         alignItems: 'center',
                         justifyContent: 'center',
                     },
                      children: [
+                         // Noise Overlay Fallback
+                        {
+                            type: 'div',
+                            props: {
+                                style: {
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    backgroundImage: `url('${noiseDataUri}')`,
+                                    backgroundRepeat: 'repeat',
+                                    opacity: 0.3,
+                                },
+                            },
+                        },
                         {
                             type: 'img',
                             props: {
                                 src: logoDataUri,
-                                width: '600', // Larger for centered logo
+                                width: '600',
                                 height: '600',
                                 style: {
                                     objectFit: 'contain',
@@ -183,8 +248,7 @@ export const POST: APIRoute = async ({ request }) => {
             });
         } catch (fallbackError) {
              console.error('Logo-only fallback failed too. Trying Text-only...', fallbackError);
-
-             // Fallback 2: Text Only (If logo fails too)
+             // Fallback 2: Text Only
              try {
                 const markupText = {
                     type: 'div',
