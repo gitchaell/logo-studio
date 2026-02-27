@@ -45,6 +45,16 @@ export const POST: APIRoute = async ({ request }) => {
     };
 
     const cleanSvg = fixSvgAttributes(svgContent);
+    // Parse SVG string to VDOM using satori-html
+    // This embeds the SVG directly instead of using an image tag, which can be more reliable for some SVGs
+    // However, we need to make sure we wrap it correctly.
+    let logoVdom;
+    try {
+        logoVdom = html(cleanSvg);
+    } catch (e) {
+        console.warn('Failed to parse SVG with satori-html, falling back to img tag', e);
+    }
+
     const base64Logo = Buffer.from(cleanSvg).toString('base64');
     const logoDataUri = `data:image/svg+xml;base64,${base64Logo}`;
 
@@ -125,7 +135,34 @@ export const POST: APIRoute = async ({ request }) => {
                             },
                             children: [
                                 // Logo Area
-                                {
+                                logoVdom ? {
+                                    type: 'div',
+                                    props: {
+                                        style: {
+                                            display: 'flex',
+                                            width: '256px',
+                                            height: '256px',
+                                            marginBottom: '40px',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                        },
+                                        children: [
+                                            {
+                                                ...logoVdom,
+                                                props: {
+                                                    ...logoVdom.props,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    style: {
+                                                        ...logoVdom.props.style,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                } : {
                                     type: 'img',
                                     props: {
                                         src: logoDataUri,
