@@ -54,6 +54,34 @@ const getSvgDimensions = (svgString: string) => {
     }
 };
 
+const svgToPng = (svgString: string, width: number, height: number): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        img.onload = () => {
+             const canvas = document.createElement('canvas');
+             canvas.width = width;
+             canvas.height = height;
+             const ctx = canvas.getContext('2d');
+             if (ctx) {
+                 ctx.drawImage(img, 0, 0, width, height);
+                 canvas.toBlob((blob) => {
+                     URL.revokeObjectURL(url);
+                     resolve(blob);
+                 });
+             } else {
+                 resolve(null);
+             }
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(null);
+        };
+        img.src = url;
+    });
+};
+
 const fitLogoToCanvas = (width: number, height: number) => {
     // Determine the safe area size.
     // If width/height is huge, we just want to scale it to fit roughly within 400px view if needed
@@ -489,13 +517,15 @@ export default function Editor({ lang }: EditorProps) {
           promises.push(faviconPromise);
       }
 
-      // Generate OpenGraph Image (Always include OG if possible as it's a key feature, or add to selection?)
-      // User didn't explicitly ask for OG selection, but "favicon and splash, and perhaps manifest.json and app.json"
-      // I'll keep OG as auto-include for now unless user complains, or maybe add it to extras later if needed.
+      // Generate OpenGraph Image
       try {
           const ogSvg = await generateOpenGraph(project, svgString);
           if (ogSvg) {
               zip.file('opengraph-image.svg', ogSvg);
+              const ogPng = await svgToPng(ogSvg, 1200, 630);
+              if (ogPng) {
+                  zip.file('opengraph-image.png', ogPng);
+              }
           }
       } catch (e) {
           console.error("OG Generation failed", e);
