@@ -44,7 +44,19 @@ function adjustColor(hex: string, amount: number): string {
 export const POST: APIRoute = async ({ request }) => {
   console.log('[API] generate-og called');
   try {
-    const { project, svgContent } = await request.json();
+    const payload = await request.json();
+    const { project } = payload;
+    let svgContent = payload.svgContent;
+
+    // Decode base64 SVG content sent from the client
+    if (svgContent && !svgContent.includes('<svg')) {
+      try {
+        svgContent = Buffer.from(svgContent, 'base64').toString('utf-8');
+      } catch (e) {
+        console.warn('Failed to decode base64 SVG content', e);
+      }
+    }
+
     const { backgroundColor, name, description, logoScale = 1, logoX = 0, logoY = 0 } = project;
     const bg = backgroundColor || '#ffffff';
     const textColor = getContrastingTextColor(bg);

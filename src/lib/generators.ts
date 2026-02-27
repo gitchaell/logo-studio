@@ -80,12 +80,15 @@ export const generateOpenGraph = async (project: any, svgContent: string) => {
 
         console.log(`Generating OG Image via: ${apiUrl}`);
 
+        // Base64 encode the SVG content to avoid WAF rules blocking the raw HTML tags
+        const encodedSvg = btoa(unescape(encodeURIComponent(svgContent)));
+
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ project, svgContent }),
+            body: JSON.stringify({ project, svgContent: encodedSvg }),
         });
 
         if (!response.ok) {
