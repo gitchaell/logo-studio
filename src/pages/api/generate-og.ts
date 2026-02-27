@@ -24,11 +24,28 @@ function getContrastingTextColor(hex: string): string {
   return yiq >= 128 ? '#000000' : '#ffffff';
 }
 
+function adjustColor(hex: string, amount: number): string {
+    const cleanHex = hex.replace('#', '');
+    let r = parseInt(cleanHex.substring(0, 2), 16);
+    let g = parseInt(cleanHex.substring(2, 4), 16);
+    let b = parseInt(cleanHex.substring(4, 6), 16);
+
+    r = Math.min(255, Math.max(0, r + amount));
+    g = Math.min(255, Math.max(0, g + amount));
+    b = Math.min(255, Math.max(0, b + amount));
+
+    const rr = (r.toString(16).length === 1) ? `0${r.toString(16)}` : r.toString(16);
+    const gg = (g.toString(16).length === 1) ? `0${g.toString(16)}` : g.toString(16);
+    const bb = (b.toString(16).length === 1) ? `0${b.toString(16)}` : b.toString(16);
+
+    return `#${rr}${gg}${bb}`;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   console.log('[API] generate-og called');
   try {
     const { project, svgContent } = await request.json();
-    const { backgroundColor, name, description } = project;
+    const { backgroundColor, name, description, logoScale = 1, logoX = 0, logoY = 0 } = project;
     const bg = backgroundColor || '#ffffff';
     const textColor = getContrastingTextColor(bg);
 
@@ -80,13 +97,22 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Attempt 1: Full Modern Layout
     try {
-        // Grid pattern background
-        const gridColor = textColor === '#ffffff' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
-        const gridBg = `
-            radial-gradient(circle at 10% 20%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.1) 90%),
-            linear-gradient(${gridColor} 1px, transparent 1px),
-            linear-gradient(90deg, ${gridColor} 1px, transparent 1px)
-        `;
+        // Dynamic Gradient Background
+        // If bg is dark (textColor white), we want to make it slightly lighter or different?
+        // Let's just create a subtle gradient.
+        // If background is white, secondary is slightly gray.
+        // If background is black, secondary is dark gray.
+
+        let gradientColor = bg;
+        if (bg.toLowerCase() === '#ffffff') {
+             gradientColor = '#f0f2f5';
+        } else if (bg.toLowerCase() === '#000000') {
+             gradientColor = '#1a1a1a';
+        } else {
+             gradientColor = adjustColor(bg, -20);
+        }
+
+        const backgroundStyle = `linear-gradient(135deg, ${bg} 0%, ${gradientColor} 100%)`;
 
         const markup = {
             type: 'div',
@@ -96,9 +122,7 @@ export const POST: APIRoute = async ({ request }) => {
                     flexDirection: 'column',
                     width: '100%',
                     height: '100%',
-                    backgroundColor: bg,
-                    backgroundImage: gridBg,
-                    backgroundSize: '100% 100%, 40px 40px, 40px 40px',
+                    background: backgroundStyle,
                     fontFamily: 'CustomFont',
                     position: 'relative',
                 },
@@ -145,6 +169,9 @@ export const POST: APIRoute = async ({ request }) => {
                                             marginBottom: '40px',
                                             justifyContent: 'center',
                                             alignItems: 'center',
+                                            // Apply Transform
+                                            transform: `translate(${logoX * 2.34}px, ${logoY * 2.34}px) scale(${logoScale})`,
+                                            transformOrigin: 'center',
                                         },
                                         children: [
                                             {
@@ -171,6 +198,8 @@ export const POST: APIRoute = async ({ request }) => {
                                         style: {
                                             objectFit: 'contain',
                                             marginBottom: '40px',
+                                            transform: `translate(${logoX * 2.34}px, ${logoY * 2.34}px) scale(${logoScale})`,
+                                            transformOrigin: 'center',
                                         },
                                     },
                                 },
