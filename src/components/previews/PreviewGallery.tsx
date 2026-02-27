@@ -59,12 +59,19 @@ export function PreviewGallery({
   useEffect(() => {
       const generate = async () => {
           if (svgContent && projectName) {
-              const svg = await generateOpenGraph({ name: projectName, description: description || 'Designed with Logo Studio' }, svgContent);
+              const svg = await generateOpenGraph({
+                  name: projectName,
+                  description: description || 'Designed with Logo Studio',
+                  backgroundColor,
+                  logoScale: scale,
+                  logoX: position.x,
+                  logoY: position.y
+              }, svgContent);
               setOgImage(svg);
           }
       };
       generate();
-  }, [svgContent, projectName, description]);
+  }, [svgContent, projectName, description, backgroundColor, scale, position]);
 
   const logoTransformStyle = {
       transform: `translate(${(position.x / 512) * 100}%, ${(position.y / 512) * 100}%) scale(${scale})`,
