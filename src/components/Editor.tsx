@@ -27,21 +27,23 @@ const getSvgDimensions = (svgString: string) => {
         let height = parseFloat(svg.getAttribute('height') || '');
         const viewBox = svg.getAttribute('viewBox');
 
+        // Prioritize viewBox for accurate dimensions and aspect ratio
         if (viewBox) {
             const parts = viewBox.split(/[\s,]+/).filter(Boolean);
             if (parts.length === 4) {
-                // Prioritize viewBox for aspect ratio if dimensions are missing or relative
                 const vbWidth = parseFloat(parts[2]);
                 const vbHeight = parseFloat(parts[3]);
 
-                if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = vbWidth;
-                if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = vbHeight;
+                if (!isNaN(vbWidth) && !isNaN(vbHeight)) {
+                    return { width: vbWidth, height: vbHeight };
+                }
             }
         }
 
-        // Fallback if viewBox failed or didn't exist and width/height are still bad
-        if (isNaN(width)) width = 512;
-        if (isNaN(height)) height = 512;
+        // Fallback to width/height attributes if viewBox is missing or invalid
+        // Handle percentage widths/heights by defaulting to 512
+        if (isNaN(width) || svg.getAttribute('width')?.includes('%')) width = 512;
+        if (isNaN(height) || svg.getAttribute('height')?.includes('%')) height = 512;
 
         return {
             width: width,
@@ -281,12 +283,18 @@ export default function Editor({ lang }: EditorProps) {
 
   const handleSelectAllSizes = async () => {
       if (!project || !id) return;
-      await db.projects.update(id, { selectedSizes: AVAILABLE_SIZES });
+      await db.projects.update(id, {
+          selectedSizes: AVAILABLE_SIZES,
+          selectedExtraAssets: ['favicon', 'splash', 'manifest', 'appjson']
+      });
   };
 
   const handleDeselectAllSizes = async () => {
       if (!project || !id) return;
-      await db.projects.update(id, { selectedSizes: [] });
+      await db.projects.update(id, {
+          selectedSizes: [],
+          selectedExtraAssets: []
+      });
   };
 
   const handleToggleExtraAsset = async (asset: string) => {
@@ -520,7 +528,7 @@ export default function Editor({ lang }: EditorProps) {
 
                 {/* Selection Overlay */}
                 {/* Matches the position of the artboard content exactly */}
-                <div className="absolute w-[512px] h-[512px] flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div
                         style={{
                             width: logoDimensions.width,

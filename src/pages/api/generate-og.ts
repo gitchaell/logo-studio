@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import satori from 'satori';
 import { html } from 'satori-html';
 
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const { project, svgContent } = await request.json();

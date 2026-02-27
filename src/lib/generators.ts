@@ -72,7 +72,11 @@ export const generateAppJson = (project: any, sizes: number[]) => {
 
 export const generateOpenGraph = async (project: any, svgContent: string) => {
     try {
-        const response = await fetch('/api/generate-og', {
+        const baseUrl = import.meta.env.BASE_URL.endsWith('/')
+            ? import.meta.env.BASE_URL
+            : `${import.meta.env.BASE_URL}/`;
+
+        const response = await fetch(`${baseUrl}api/generate-og`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
